@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Search, X, UserCheck, ChevronDown } from 'lucide-react';
-import { IntakeStudent, Counselor } from '../types';
+import { IntakeStudent } from '../types';
 import { MOCK_COUNSELORS } from '../mockData';
 import AssignCounselorModal from './AssignCounselorModal';
 

@@ -1,5 +1,6 @@
 import { FileText, UserPlus, CheckCircle, Clock, TrendingUp, TrendingDown, type LucideIcon } from 'lucide-react';
 import { OVERVIEW_STATS, type StatCard } from '../mockData';
+import { CounselorStudent, ConsultationStatus } from '../types';
 
 const ICON_MAP: Record<string, LucideIcon> = {
   FileText,
@@ -8,7 +9,17 @@ const ICON_MAP: Record<string, LucideIcon> = {
   Clock,
 };
 
-export default function OverviewPage() {
+const CONSULTATION_STATUS_STYLES: Record<ConsultationStatus, string> = {
+  'Awaiting Consultation': 'bg-orange-100 text-orange-700',
+  'In Progress': 'bg-blue-100 text-blue-700',
+  'Consultation Complete': 'bg-green-100 text-green-700',
+};
+
+interface OverviewPageProps {
+  upcomingConsultations: CounselorStudent[];
+}
+
+export default function OverviewPage({ upcomingConsultations }: OverviewPageProps) {
   return (
     <div className="space-y-6">
       {/* Welcome banner */}
@@ -69,22 +80,23 @@ export default function OverviewPage() {
 
         <div className="stat-card">
           <h3 className="text-base font-semibold text-navy mb-4">Upcoming Consultations</h3>
-          <div className="space-y-3">
-            {[
-              { client: 'Deepak Thapa', time: 'Today, 2:00 PM', type: 'Initial Consultation' },
-              { client: 'Emily Park', time: 'Today, 3:30 PM', type: 'Document Review' },
-              { client: 'Ravi Gupta', time: 'Tomorrow, 10:00 AM', type: 'Follow-up' },
-              { client: 'Anna Lee', time: 'Tomorrow, 11:30 AM', type: 'Visa Strategy' },
-            ].map((consult) => (
-              <div key={consult.client} className="flex items-center justify-between py-2.5 border-b border-grey-border last:border-0">
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-navy truncate">{consult.client}</p>
-                  <p className="text-xs text-gray-500 truncate">{consult.type}</p>
+          {upcomingConsultations.length > 0 ? (
+            <div className="space-y-3">
+              {upcomingConsultations.slice(0, 5).map((s) => (
+                <div key={s.id} className="flex items-center justify-between py-2.5 border-b border-grey-border last:border-0">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-navy truncate">{s.name}</p>
+                    <p className="text-xs text-gray-500 truncate">{s.assignedCounselor} · {s.country} — {s.purpose}</p>
+                  </div>
+                  <span className={`text-xs font-medium px-2.5 py-1 rounded-full flex-shrink-0 ${CONSULTATION_STATUS_STYLES[s.consultationStatus]}`}>
+                    {s.consultationStatus}
+                  </span>
                 </div>
-                <span className="text-xs text-gray-400 flex-shrink-0">{consult.time}</span>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-gray-400 text-center py-6">No upcoming consultations.</p>
+          )}
         </div>
       </div>
     </div>

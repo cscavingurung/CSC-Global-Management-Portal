@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import {
-  Mountain, LogOut, Menu, X,
+  LogOut, Menu, X,
   LayoutDashboard, Building2, GraduationCap, FileText, DollarSign,
-  Users, BarChart3, UserPlus, UserCheck, CalendarDays, RefreshCw,
+  Users, BarChart3, UserPlus, UserCheck, CalendarDays, RefreshCw, Landmark,
   type LucideIcon,
 } from 'lucide-react';
 import { MockUser, NavItem } from '../types';
@@ -10,7 +10,7 @@ import { ROLE_LABELS } from '../mockData';
 
 const ICON_MAP: Record<string, LucideIcon> = {
   LayoutDashboard, Building2, GraduationCap, FileText, DollarSign,
-  Users, BarChart3, UserPlus, UserCheck, CalendarDays, RefreshCw,
+  Users, BarChart3, UserPlus, UserCheck, CalendarDays, RefreshCw, Landmark,
 };
 
 interface DashboardShellProps {
@@ -31,10 +31,11 @@ export default function DashboardShell({
   children,
 }: DashboardShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const activeItem = navItems.find((item) => item.key === activeKey);
 
   return (
-    <div className="min-h-screen bg-grey-bg flex">
+    <div className="h-screen bg-grey-bg flex overflow-hidden">
       {/* Sidebar overlay (mobile) */}
       {sidebarOpen && (
         <div
@@ -45,7 +46,7 @@ export default function DashboardShell({
 
       {/* Sidebar */}
       <aside
-        className={`fixed lg:static inset-y-0 left-0 z-40 w-64 bg-navy flex flex-col transition-transform duration-200 ${
+        className={`fixed inset-y-0 left-0 z-40 w-64 bg-navy flex flex-col transition-transform duration-200 ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
       >
@@ -91,7 +92,7 @@ export default function DashboardShell({
         {/* Logout */}
         <div className="px-3 py-4 border-t border-white/10">
           <button
-            onClick={onLogout}
+            onClick={() => setShowLogoutConfirm(true)}
             className="nav-item w-full nav-item-inactive"
           >
             <LogOut size={18} className="flex-shrink-0" />
@@ -101,7 +102,7 @@ export default function DashboardShell({
       </aside>
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 lg:ml-64">
         {/* Top bar */}
         <header className="bg-white border-b border-grey-border px-4 lg:px-8 py-4 flex items-center gap-4 sticky top-0 z-20">
           <button
@@ -128,6 +129,36 @@ export default function DashboardShell({
         {/* Page content */}
         <main className="flex-1 p-4 lg:p-8 overflow-y-auto">{children}</main>
       </div>
+
+      {/* Logout confirmation dialog */}
+      {showLogoutConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-navy-dark/50 backdrop-blur-sm" onClick={() => setShowLogoutConfirm(false)} />
+          <div className="relative bg-white rounded-2xl shadow-xl max-w-sm w-full p-6">
+            <div className="w-12 h-12 rounded-xl bg-navy/5 flex items-center justify-center mx-auto mb-4">
+              <LogOut className="text-navy" size={24} />
+            </div>
+            <h3 className="text-base font-semibold text-navy text-center mb-2">Log out?</h3>
+            <p className="text-sm text-gray-500 text-center mb-6">
+              You'll need to sign in again to access the portal.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowLogoutConfirm(false)}
+                className="flex-1 py-2.5 border border-grey-border rounded-lg text-sm font-medium text-navy hover:bg-grey-bg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={onLogout}
+                className="flex-1 py-2.5 bg-navy text-white rounded-lg text-sm font-semibold hover:bg-navy-light transition-colors"
+              >
+                Log out
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

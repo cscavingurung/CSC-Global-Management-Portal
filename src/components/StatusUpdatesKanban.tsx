@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CheckCircle, AlertTriangle, X } from 'lucide-react';
+import { CheckCircle, AlertTriangle } from 'lucide-react';
 import { ApplicationRecord, ApplicationStatus, StatusHistoryEntry } from '../types';
 
 interface StatusUpdatesKanbanProps {

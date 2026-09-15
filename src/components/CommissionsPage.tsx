@@ -1,24 +1,22 @@
 import { useState, useMemo } from 'react';
 import { Search, X, Edit, DollarSign, CheckCircle } from 'lucide-react';
-import { CommissionRecord, CommissionStatus, ApplicationStatus } from '../types';
+import { CommissionRecord, CommissionStatus, Partner } from '../types';
 
 interface CommissionsPageProps {
   commissions: CommissionRecord[];
+  partners: Partner[];
   onUpdateCommission: (id: string, updates: Partial<CommissionRecord>) => void;
 }
 
-const APP_STATUS_STYLES: Record<ApplicationStatus, string> = {
-  Preparation: 'bg-gray-100 text-gray-600',
-  Lodgement: 'bg-navy text-white',
-  Success: 'bg-green-100 text-green-700',
-  Refused: 'bg-red-100 text-red-700',
-};
+const commissionAmount = (c: CommissionRecord) => (c.fullFee * c.commissionRate) / 100;
 
-export default function CommissionsPage({ commissions, onUpdateCommission }: CommissionsPageProps) {
+export default function CommissionsPage({ commissions, partners, onUpdateCommission }: CommissionsPageProps) {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | CommissionStatus>('all');
   const [editTarget, setEditTarget] = useState<CommissionRecord | null>(null);
-  const [editAmount, setEditAmount] = useState('');
+  const [editPartner, setEditPartner] = useState('');
+  const [editCommissionRate, setEditCommissionRate] = useState(0);
+  const [editFullFee, setEditFullFee] = useState('');
   const [editStatus, setEditStatus] = useState<CommissionStatus>('Pending');
   const [showToast, setShowToast] = useState(false);
 
@@ -31,14 +29,16 @@ export default function CommissionsPage({ commissions, onUpdateCommission }: Com
     });
   }, [commissions, search, statusFilter]);
 
-  const totalPending = commissions.filter((c) => c.commissionStatus === 'Pending').reduce((sum, c) => sum + c.amount, 0);
-  const totalPaid = commissions.filter((c) => c.commissionStatus === 'Paid').reduce((sum, c) => sum + c.amount, 0);
+  const totalReceivable = commissions.filter((c) => c.commissionStatus === 'Pending').reduce((sum, c) => sum + commissionAmount(c), 0);
+  const totalReceived = commissions.filter((c) => c.commissionStatus === 'Paid').reduce((sum, c) => sum + commissionAmount(c), 0);
 
   const handleEditSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (editTarget) {
       onUpdateCommission(editTarget.id, {
-        amount: Number(editAmount),
+        partner: editPartner,
+        fullFee: Number(editFullFee),
+        commissionRate: editCommissionRate,
         commissionStatus: editStatus,
       });
       setShowToast(true);
@@ -49,8 +49,16 @@ export default function CommissionsPage({ commissions, onUpdateCommission }: Com
 
   const openEdit = (c: CommissionRecord) => {
     setEditTarget(c);
-    setEditAmount(String(c.amount));
+    setEditPartner(c.partner);
+    setEditCommissionRate(c.commissionRate);
+    setEditFullFee(String(c.fullFee));
     setEditStatus(c.commissionStatus);
+  };
+
+  const handlePartnerChange = (name: string) => {
+    setEditPartner(name);
+    const match = partners.find((p) => p.name === name);
+    if (match) setEditCommissionRate(match.commissionRate);
   };
 
   return (
@@ -61,21 +69,21 @@ export default function CommissionsPage({ commissions, onUpdateCommission }: Com
           <div className="w-10 h-10 rounded-lg bg-navy/5 flex items-center justify-center mb-3">
             <DollarSign className="text-navy" size={20} />
           </div>
-          <p className="text-2xl font-bold text-navy">${totalPending.toLocaleString()}</p>
-          <p className="text-sm text-gray-500 mt-0.5">Pending Commissions</p>
+          <p className="text-2xl font-bold text-navy">${totalReceivable.toLocaleString()}</p>
+          <p className="text-sm text-gray-500 mt-0.5">Receivable</p>
         </div>
         <div className="stat-card">
           <div className="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center mb-3">
             <CheckCircle className="text-green-600" size={20} />
           </div>
-          <p className="text-2xl font-bold text-green-600">${totalPaid.toLocaleString()}</p>
-          <p className="text-sm text-gray-500 mt-0.5">Paid Commissions</p>
+          <p className="text-2xl font-bold text-green-600">${totalReceived.toLocaleString()}</p>
+          <p className="text-sm text-gray-500 mt-0.5">Received</p>
         </div>
         <div className="stat-card">
           <div className="w-10 h-10 rounded-lg bg-navy/5 flex items-center justify-center mb-3">
             <DollarSign className="text-navy" size={20} />
           </div>
-          <p className="text-2xl font-bold text-navy">${(totalPending + totalPaid).toLocaleString()}</p>
+          <p className="text-2xl font-bold text-navy">${(totalReceivable + totalReceived).toLocaleString()}</p>
           <p className="text-sm text-gray-500 mt-0.5">Total Commissions</p>
         </div>
       </div>
@@ -119,33 +127,40 @@ export default function CommissionsPage({ commissions, onUpdateCommission }: Com
             <tr className="border-b border-grey-border bg-grey-bg">
               <th className="text-left text-xs font-semibold text-gray-500 px-5 py-3">Student</th>
               <th className="text-left text-xs font-semibold text-gray-500 px-5 py-3">Branch</th>
-              <th className="text-left text-xs font-semibold text-gray-500 px-5 py-3">Consultant</th>
-              <th className="text-left text-xs font-semibold text-gray-500 px-5 py-3">App Status</th>
-              <th className="text-right text-xs font-semibold text-gray-500 px-5 py-3">Amount</th>
-              <th className="text-left text-xs font-semibold text-gray-500 px-5 py-3">Commission</th>
+              <th className="text-left text-xs font-semibold text-gray-500 px-5 py-3">Partner</th>
+              <th className="text-right text-xs font-semibold text-gray-500 px-5 py-3">Full Fee</th>
+              <th className="text-right text-xs font-semibold text-gray-500 px-5 py-3">%</th>
+              <th className="text-right text-xs font-semibold text-gray-500 px-5 py-3">Received</th>
+              <th className="text-right text-xs font-semibold text-gray-500 px-5 py-3">Receivable</th>
               <th className="text-right text-xs font-semibold text-gray-500 px-5 py-3">Action</th>
             </tr>
           </thead>
           <tbody>
-            {filtered.map((c) => (
+            {filtered.map((c) => {
+              const amount = commissionAmount(c);
+              return (
               <tr key={c.id} className="border-b border-grey-border last:border-0 hover:bg-grey-bg/50 transition-colors">
-                <td className="px-5 py-3.5 text-sm font-medium text-navy">{c.studentName}</td>
+                <td className="px-5 py-3.5">
+                  <p className="text-sm font-medium text-navy">{c.studentName}</p>
+                  <p className="text-xs text-gray-400">{c.consultant}</p>
+                </td>
                 <td className="px-5 py-3.5 text-sm text-gray-600">{c.branch}</td>
-                <td className="px-5 py-3.5 text-sm text-gray-600">{c.consultant}</td>
-                <td className="px-5 py-3.5">
-                  <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${APP_STATUS_STYLES[c.applicationStatus]}`}>
-                    {c.applicationStatus}
-                  </span>
+                <td className="px-5 py-3.5 text-sm text-gray-600">{c.partner}</td>
+                <td className="px-5 py-3.5 text-sm text-gray-600 text-right">${c.fullFee.toLocaleString()}</td>
+                <td className="px-5 py-3.5 text-sm text-gray-600 text-right">{c.commissionRate}%</td>
+                <td className="px-5 py-3.5 text-sm font-semibold text-right">
+                  {c.commissionStatus === 'Paid' ? (
+                    <span className="text-green-600">${amount.toLocaleString()}</span>
+                  ) : (
+                    <span className="text-gray-300">—</span>
+                  )}
                 </td>
-                <td className="px-5 py-3.5 text-sm font-semibold text-navy text-right">
-                  ${c.amount.toLocaleString()}
-                </td>
-                <td className="px-5 py-3.5">
-                  <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${
-                    c.commissionStatus === 'Paid' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
-                  }`}>
-                    {c.commissionStatus}
-                  </span>
+                <td className="px-5 py-3.5 text-sm font-semibold text-right">
+                  {c.commissionStatus === 'Pending' ? (
+                    <span className="text-orange-600">${amount.toLocaleString()}</span>
+                  ) : (
+                    <span className="text-gray-300">—</span>
+                  )}
                 </td>
                 <td className="px-5 py-3.5 text-right">
                   <button
@@ -157,7 +172,8 @@ export default function CommissionsPage({ commissions, onUpdateCommission }: Com
                   </button>
                 </td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
         {filtered.length === 0 && (
@@ -167,7 +183,9 @@ export default function CommissionsPage({ commissions, onUpdateCommission }: Com
 
       {/* Card list — mobile */}
       <div className="lg:hidden space-y-3">
-        {filtered.map((c) => (
+        {filtered.map((c) => {
+          const amount = commissionAmount(c);
+          return (
           <div key={c.id} className="bg-white rounded-xl border border-grey-border p-4">
             <div className="flex items-start justify-between mb-2">
               <div>
@@ -180,90 +198,127 @@ export default function CommissionsPage({ commissions, onUpdateCommission }: Com
                 {c.commissionStatus}
               </span>
             </div>
-            <div className="flex items-center justify-between pt-3 border-t border-grey-border">
-              <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${APP_STATUS_STYLES[c.applicationStatus]}`}>
-                {c.applicationStatus}
-              </span>
-              <div className="flex items-center gap-3">
-                <span className="text-sm font-semibold text-navy">${c.amount.toLocaleString()}</span>
-                <button onClick={() => openEdit(c)} className="text-sm font-medium text-navy hover:text-navy-light">
-                  <Edit size={15} />
-                </button>
-              </div>
+            <div className="grid grid-cols-2 gap-2 text-xs text-gray-500 mb-3">
+              <p>Partner: <span className="text-gray-700">{c.partner}</span></p>
+              <p>Rate: <span className="text-gray-700">{c.commissionRate}%</span></p>
+              <p>Full Fee: <span className="text-gray-700">${c.fullFee.toLocaleString()}</span></p>
+              <p>
+                {c.commissionStatus === 'Paid' ? 'Received' : 'Receivable'}:{' '}
+                <span className={c.commissionStatus === 'Paid' ? 'text-green-600 font-medium' : 'text-orange-600 font-medium'}>
+                  ${amount.toLocaleString()}
+                </span>
+              </p>
+            </div>
+            <div className="flex items-center justify-end pt-3 border-t border-grey-border">
+              <button
+                onClick={() => openEdit(c)}
+                className="inline-flex items-center gap-1.5 text-sm font-medium text-navy hover:text-navy-light transition-colors"
+              >
+                <Edit size={15} />
+                Edit
+              </button>
             </div>
           </div>
-        ))}
+          );
+        })}
         {filtered.length === 0 && (
           <div className="py-12 text-center text-sm text-gray-400">No commissions found.</div>
         )}
       </div>
 
-      {/* Edit modal */}
+      {/* Edit drawer */}
       {editTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex justify-end">
           <div className="absolute inset-0 bg-navy-dark/50 backdrop-blur-sm" onClick={() => setEditTarget(null)} />
-          <div className="relative bg-white rounded-2xl shadow-xl max-w-md w-full p-6">
-            <div className="flex items-center justify-between mb-5">
-              <h2 className="text-base font-semibold text-navy">Edit Commission</h2>
+          <div className="relative w-full sm:max-w-md bg-white shadow-2xl h-full flex flex-col">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-grey-border flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <Edit className="text-navy" size={20} />
+                <h2 className="text-base font-semibold text-navy">Edit Commission</h2>
+              </div>
               <button onClick={() => setEditTarget(null)} className="text-gray-400 hover:text-navy transition-colors">
                 <X size={20} />
               </button>
             </div>
-            <form onSubmit={handleEditSubmit} className="space-y-4">
-              <div className="bg-grey-bg rounded-xl p-4 space-y-2">
-                <p className="text-xs text-gray-400">Student</p>
-                <p className="text-sm font-medium text-navy">{editTarget.studentName}</p>
-                <p className="text-xs text-gray-400 mt-2">Consultant</p>
-                <p className="text-sm font-medium text-navy">{editTarget.consultant}</p>
-                <p className="text-xs text-gray-400 mt-2">Branch</p>
-                <p className="text-sm font-medium text-navy">{editTarget.branch}</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-navy mb-1.5">Commission Amount ($)</label>
-                <input
-                  type="number"
-                  min="0"
-                  required
-                  value={editAmount}
-                  onChange={(e) => setEditAmount(e.target.value)}
-                  className="w-full px-4 py-2.5 border border-grey-border rounded-lg text-sm focus:outline-none focus:border-navy-light focus:ring-1 focus:ring-navy-light transition-colors"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-navy mb-1.5">Commission Status</label>
-                <div className="flex gap-2">
-                  {(['Pending', 'Paid'] as CommissionStatus[]).map((opt) => (
-                    <button
-                      key={opt}
-                      type="button"
-                      onClick={() => setEditStatus(opt)}
-                      className={`flex-1 py-2.5 rounded-lg border text-sm font-medium transition-all ${
-                        editStatus === opt
-                          ? opt === 'Paid'
-                            ? 'bg-green-100 text-green-700 border-green-200'
-                            : 'bg-orange-100 text-orange-700 border-orange-200'
-                          : 'border-grey-border text-gray-500 hover:bg-grey-bg'
-                      }`}
-                    >
-                      {opt}
-                    </button>
-                  ))}
+            <form onSubmit={handleEditSubmit} className="flex-1 flex flex-col overflow-hidden">
+              <div className="flex-1 overflow-y-auto px-5 py-5 space-y-4">
+                <div className="bg-grey-bg rounded-xl p-4 space-y-2">
+                  <p className="text-xs text-gray-400">Student</p>
+                  <p className="text-sm font-medium text-navy">{editTarget.studentName}</p>
+                  <p className="text-xs text-gray-400 mt-2">Consultant</p>
+                  <p className="text-sm font-medium text-navy">{editTarget.consultant}</p>
+                  <p className="text-xs text-gray-400 mt-2">Branch</p>
+                  <p className="text-sm font-medium text-navy">{editTarget.branch}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-navy mb-1.5">Partner</label>
+                  <select
+                    required
+                    value={editPartner}
+                    onChange={(e) => handlePartnerChange(e.target.value)}
+                    className="w-full px-4 py-2.5 border border-grey-border rounded-lg text-sm focus:outline-none focus:border-navy-light focus:ring-1 focus:ring-navy-light transition-colors appearance-none bg-white"
+                  >
+                    <option value="" disabled>Select a partner</option>
+                    {partners.map((p) => (
+                      <option key={p.id} value={p.name}>{p.name} ({p.commissionRate}%)</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-navy mb-1.5">Full Fee ($)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    required
+                    value={editFullFee}
+                    onChange={(e) => setEditFullFee(e.target.value)}
+                    className="w-full px-4 py-2.5 border border-grey-border rounded-lg text-sm focus:outline-none focus:border-navy-light focus:ring-1 focus:ring-navy-light transition-colors"
+                  />
+                </div>
+                {editPartner && editFullFee && (
+                  <p className="text-xs text-gray-500 -mt-2">
+                    Commission: {editCommissionRate}% of ${Number(editFullFee).toLocaleString()} = $
+                    {((Number(editFullFee) * editCommissionRate) / 100).toLocaleString()}
+                  </p>
+                )}
+                <div>
+                  <label className="block text-sm font-medium text-navy mb-1.5">Commission Status</label>
+                  <div className="flex gap-2">
+                    {(['Pending', 'Paid'] as CommissionStatus[]).map((opt) => (
+                      <button
+                        key={opt}
+                        type="button"
+                        onClick={() => setEditStatus(opt)}
+                        className={`px-4 py-1.5 rounded-full border text-sm font-medium transition-colors ${
+                          editStatus === opt
+                            ? opt === 'Paid'
+                              ? 'bg-green-100 text-green-700 border-green-200'
+                              : 'bg-orange-100 text-orange-700 border-orange-200'
+                            : 'border-grey-border text-gray-500 hover:bg-grey-bg'
+                        }`}
+                      >
+                        {opt === 'Paid' ? 'Received' : 'Receivable'}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
-              <div className="flex gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setEditTarget(null)}
-                  className="flex-1 py-2.5 border border-grey-border rounded-lg text-sm font-medium text-navy hover:bg-grey-bg transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 py-2.5 bg-navy text-white rounded-lg text-sm font-semibold hover:bg-navy-light transition-colors active:scale-[0.98]"
-                >
-                  Save Changes
-                </button>
+              <div className="flex-shrink-0 border-t border-grey-border px-5 py-4">
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setEditTarget(null)}
+                    className="flex-1 py-2.5 border border-grey-border rounded-lg text-sm font-medium text-navy hover:bg-grey-bg transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 py-2.5 bg-navy text-white rounded-lg text-sm font-semibold hover:bg-navy-light transition-colors active:scale-[0.98]"
+                  >
+                    Save Changes
+                  </button>
+                </div>
               </div>
             </form>
           </div>

@@ -1,23 +1,24 @@
 import { useState, useMemo } from 'react';
 import {
-  Search, X, Building2, Plus, ChevronDown, MapPin, Users,
-  GraduationCap, FileText, CheckCircle, CheckCircle as CheckIcon,
+  Search, X, Building2, Plus, MapPin, Users,
+  GraduationCap, FileText, CheckCircle, CheckCircle as CheckIcon, Trash2,
 } from 'lucide-react';
-import { Branch, StaffMember } from '../types';
+import { Branch } from '../types';
 
 interface AllBranchesProps {
   branches: Branch[];
-  staff: StaffMember[];
   onAddBranch: (branch: Branch) => void;
+  onDeleteBranch: (id: string) => void;
 }
 
-export default function AllBranches({ branches, staff, onAddBranch }: AllBranchesProps) {
+export default function AllBranches({ branches, onAddBranch, onDeleteBranch }: AllBranchesProps) {
   const [search, setSearch] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
   const [selectedBranch, setSelectedBranch] = useState<Branch | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Branch | null>(null);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
-  const [newBranch, setNewBranch] = useState({ name: '', location: '', manager: '' });
+  const [newBranch, setNewBranch] = useState({ name: '', location: '' });
 
   const filtered = useMemo(() => {
     return branches.filter((b) =>
@@ -26,17 +27,13 @@ export default function AllBranches({ branches, staff, onAddBranch }: AllBranche
     );
   }, [branches, search]);
 
-  const availableManagers = staff.filter(
-    (s) => !branches.some((b) => b.manager === s.name)
-  );
-
   const handleAddSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const branch: Branch = {
       id: `b${Date.now()}`,
       name: newBranch.name,
       location: newBranch.location,
-      manager: newBranch.manager || null,
+      manager: null,
       staffCount: 0,
       activeStudents: 0,
       applicationsInProgress: 0,
@@ -46,8 +43,19 @@ export default function AllBranches({ branches, staff, onAddBranch }: AllBranche
     setToastMessage(`Branch '${branch.name}' created`);
     setShowToast(true);
     setTimeout(() => setShowToast(false), 2500);
-    setNewBranch({ name: '', location: '', manager: '' });
+    setNewBranch({ name: '', location: '' });
     setShowAddForm(false);
+  };
+
+  const handleConfirmDelete = () => {
+    if (deleteTarget) {
+      onDeleteBranch(deleteTarget.id);
+      setToastMessage(`Branch '${deleteTarget.name}' deleted`);
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 2500);
+      setDeleteTarget(null);
+      setSelectedBranch(null);
+    }
   };
 
   return (
@@ -159,22 +167,9 @@ export default function AllBranches({ branches, staff, onAddBranch }: AllBranche
                   className="w-full px-4 py-2.5 border border-grey-border rounded-lg text-sm focus:outline-none focus:border-navy-light focus:ring-1 focus:ring-navy-light transition-colors"
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-navy mb-1.5">Branch Manager</label>
-                <div className="relative">
-                  <select
-                    value={newBranch.manager}
-                    onChange={(e) => setNewBranch({ ...newBranch, manager: e.target.value })}
-                    className="w-full px-4 py-2.5 border border-grey-border rounded-lg text-sm focus:outline-none focus:border-navy-light focus:ring-1 focus:ring-navy-light transition-colors appearance-none bg-white"
-                  >
-                    <option value="">Leave unassigned for now</option>
-                    {availableManagers.map((s) => (
-                      <option key={s.id} value={s.name}>{s.name} ({s.role})</option>
-                    ))}
-                  </select>
-                  <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
-                </div>
-              </div>
+              <p className="text-xs text-gray-400 -mt-1">
+                New branches start unassigned — assign a manager by adding a Branch Manager to Staff for this branch.
+              </p>
               <div className="flex gap-3 pt-2">
                 <button
                   type="button"
@@ -199,8 +194,8 @@ export default function AllBranches({ branches, staff, onAddBranch }: AllBranche
       {selectedBranch && (
         <div className="fixed inset-0 z-50 flex justify-end">
           <div className="absolute inset-0 bg-navy-dark/50 backdrop-blur-sm" onClick={() => setSelectedBranch(null)} />
-          <div className="relative w-full sm:max-w-md bg-white shadow-2xl h-full overflow-y-auto">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-grey-border sticky top-0 bg-white z-10">
+          <div className="relative w-full sm:max-w-md bg-white shadow-2xl h-full flex flex-col">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-grey-border flex-shrink-0">
               <div className="flex items-center gap-2">
                 <Building2 className="text-navy" size={20} />
                 <h2 className="text-base font-semibold text-navy">{selectedBranch.name}</h2>
@@ -209,7 +204,7 @@ export default function AllBranches({ branches, staff, onAddBranch }: AllBranche
                 <X size={20} />
               </button>
             </div>
-            <div className="px-5 py-5 space-y-5">
+            <div className="flex-1 overflow-y-auto px-5 py-5 space-y-5">
               <div className="bg-navy rounded-xl p-5 text-white">
                 <p className="text-white/60 text-xs mb-1">Location</p>
                 <p className="text-lg font-semibold">{selectedBranch.location}</p>
@@ -236,6 +231,47 @@ export default function AllBranches({ branches, staff, onAddBranch }: AllBranche
                   );
                 })}
               </div>
+            </div>
+            <div className="flex-shrink-0 border-t border-grey-border px-5 py-4">
+              <button
+                onClick={() => setDeleteTarget(selectedBranch)}
+                className="w-full inline-flex items-center justify-center gap-2 text-sm font-medium text-red-600 border border-red-200 rounded-lg py-2.5 hover:bg-red-50 transition-colors"
+              >
+                <Trash2 size={16} />
+                Delete Branch
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete confirmation dialog */}
+      {deleteTarget && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-navy-dark/50 backdrop-blur-sm" onClick={() => setDeleteTarget(null)} />
+          <div className="relative bg-white rounded-2xl shadow-xl max-w-sm w-full p-6">
+            <div className="w-12 h-12 rounded-xl bg-red-50 flex items-center justify-center mx-auto mb-4">
+              <Trash2 className="text-red-500" size={26} />
+            </div>
+            <h3 className="text-base font-semibold text-navy text-center mb-2">
+              Delete {deleteTarget.name}?
+            </h3>
+            <p className="text-sm text-gray-500 text-center mb-6">
+              This will permanently delete the {deleteTarget.name} branch. This action cannot be undone.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeleteTarget(null)}
+                className="flex-1 py-2.5 border border-grey-border rounded-lg text-sm font-medium text-navy hover:bg-grey-bg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmDelete}
+                className="flex-1 py-2.5 bg-red-600 text-white rounded-lg text-sm font-semibold hover:bg-red-700 transition-colors"
+              >
+                Delete
+              </button>
             </div>
           </div>
         </div>

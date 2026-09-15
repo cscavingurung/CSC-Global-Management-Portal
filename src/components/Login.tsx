@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Mountain, Lock, Mail, ChevronDown, Eye, EyeOff } from 'lucide-react';
+import { Lock, Mail, ChevronDown, Eye, EyeOff } from 'lucide-react';
 import { Role, MockUser } from '../types';
 import { ROLE_LABELS, MOCK_USERS } from '../mockData';
 

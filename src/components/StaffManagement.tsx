@@ -1,13 +1,14 @@
 import { useState, useMemo } from 'react';
 import {
   UserPlus, Trash2, Search, X, Mail, Briefcase, Circle,
-  ChevronDown, type LucideIcon,
+  ChevronDown,
 } from 'lucide-react';
 import { StaffMember, StaffRole, StaffStatus } from '../types';
 
 interface StaffManagementProps {
   staff: StaffMember[];
   onAddStaff: (member: StaffMember) => void;
+  onUpdateStaff: (id: string, updates: Partial<StaffMember>) => void;
   onRemoveStaff: (id: string) => void;
   branches?: string[];
   showBranchFilter?: boolean;
@@ -17,21 +18,18 @@ const ROLE_STYLES: Record<StaffRole, string> = {
   Receptionist: 'bg-blue-100 text-blue-700',
   Counselor: 'bg-green-100 text-green-700',
   'Application Officer': 'bg-navy text-white',
+  'Branch Manager': 'bg-purple-100 text-purple-700',
 };
 
-const ROLE_ICONS: Record<StaffRole, LucideIcon> = {
-  Receptionist: Briefcase,
-  Counselor: Briefcase,
-  'Application Officer': Briefcase,
-};
-
-export default function StaffManagement({ staff, onAddStaff, onRemoveStaff, branches, showBranchFilter }: StaffManagementProps) {
+export default function StaffManagement({ staff, onAddStaff, onUpdateStaff, onRemoveStaff, branches, showBranchFilter }: StaffManagementProps) {
   const [search, setSearch] = useState('');
   const [branchFilter, setBranchFilter] = useState<string>('all');
   const [showAddForm, setShowAddForm] = useState(false);
   const [removeTarget, setRemoveTarget] = useState<StaffMember | null>(null);
-  const [selectedStaff, setSelectedStaff] = useState<StaffMember | null>(null);
+  const [selectedStaffId, setSelectedStaffId] = useState<string | null>(null);
   const [newStaff, setNewStaff] = useState({ name: '', email: '', role: 'Receptionist' as StaffRole, branch: (branches && branches[0]) || 'Sydney CBD' });
+
+  const selectedStaff = staff.find((s) => s.id === selectedStaffId) ?? null;
 
   const filtered = useMemo(() => {
     return staff.filter((s) => {
@@ -62,7 +60,7 @@ export default function StaffManagement({ staff, onAddStaff, onRemoveStaff, bran
     if (removeTarget) {
       onRemoveStaff(removeTarget.id);
       setRemoveTarget(null);
-      if (selectedStaff?.id === removeTarget.id) setSelectedStaff(null);
+      if (selectedStaffId === removeTarget.id) setSelectedStaffId(null);
     }
   };
 
@@ -129,7 +127,7 @@ export default function StaffManagement({ staff, onAddStaff, onRemoveStaff, bran
             {filtered.map((s) => (
               <tr
                 key={s.id}
-                onClick={() => setSelectedStaff(s)}
+                onClick={() => setSelectedStaffId(s.id)}
                 className="border-b border-grey-border last:border-0 hover:bg-grey-bg/50 transition-colors cursor-pointer"
               >
                 <td className="px-5 py-3.5">
@@ -177,7 +175,11 @@ export default function StaffManagement({ staff, onAddStaff, onRemoveStaff, bran
       {/* Card list — mobile */}
       <div className="lg:hidden space-y-3">
         {filtered.map((s) => (
-          <div key={s.id} className="bg-white rounded-xl border border-grey-border p-4">
+          <div
+            key={s.id}
+            onClick={() => setSelectedStaffId(s.id)}
+            className="bg-white rounded-xl border border-grey-border p-4 cursor-pointer"
+          >
             <div className="flex items-start justify-between mb-2">
               <div className="min-w-0">
                 <p className="text-sm font-semibold text-navy">{s.name}</p>
@@ -198,7 +200,10 @@ export default function StaffManagement({ staff, onAddStaff, onRemoveStaff, bran
                 </span>
               </span>
               <button
-                onClick={() => setRemoveTarget(s)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setRemoveTarget(s);
+                }}
                 className="inline-flex items-center gap-1.5 text-sm font-medium text-red-500 hover:text-red-600 transition-colors"
               >
                 <Trash2 size={15} />
@@ -257,6 +262,7 @@ export default function StaffManagement({ staff, onAddStaff, onRemoveStaff, bran
                     <option value="Receptionist">Receptionist</option>
                     <option value="Counselor">Counselor</option>
                     <option value="Application Officer">Application Officer</option>
+                    {showBranchFilter && <option value="Branch Manager">Branch Manager</option>}
                   </select>
                   <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
                 </div>
@@ -333,11 +339,11 @@ export default function StaffManagement({ staff, onAddStaff, onRemoveStaff, bran
       {/* Staff info side panel */}
       {selectedStaff && (
         <div className="fixed inset-0 z-50 flex justify-end">
-          <div className="absolute inset-0 bg-navy-dark/50 backdrop-blur-sm" onClick={() => setSelectedStaff(null)} />
+          <div className="absolute inset-0 bg-navy-dark/50 backdrop-blur-sm" onClick={() => setSelectedStaffId(null)} />
           <div className="relative w-full sm:max-w-sm bg-white shadow-2xl h-full overflow-y-auto">
             <div className="flex items-center justify-between px-5 py-4 border-b border-grey-border sticky top-0 bg-white z-10">
               <h2 className="text-base font-semibold text-navy">Staff Details</h2>
-              <button onClick={() => setSelectedStaff(null)} className="text-gray-400 hover:text-navy transition-colors">
+              <button onClick={() => setSelectedStaffId(null)} className="text-gray-400 hover:text-navy transition-colors">
                 <X size={20} />
               </button>
             </div>
@@ -375,17 +381,28 @@ export default function StaffManagement({ staff, onAddStaff, onRemoveStaff, bran
                     <p className="text-sm font-medium text-navy">{selectedStaff.branch}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center flex-shrink-0">
-                    <Circle
-                      size={15}
-                      className={selectedStaff.status === 'Active' ? 'text-green-500 fill-green-500' : 'text-gray-300 fill-gray-300'}
-                    />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-xs text-gray-400">Status</p>
-                    <p className="text-sm font-medium text-navy">{selectedStaff.status}</p>
-                  </div>
+              </div>
+
+              {/* Status control */}
+              <div className="mt-5">
+                <label className="block text-sm font-medium text-navy mb-1.5">Status</label>
+                <div className="flex gap-2">
+                  {(['Active', 'Inactive'] as StaffStatus[]).map((opt) => (
+                    <button
+                      key={opt}
+                      type="button"
+                      onClick={() => onUpdateStaff(selectedStaff.id, { status: opt })}
+                      className={`px-4 py-1.5 rounded-full border text-sm font-medium transition-colors ${
+                        selectedStaff.status === opt
+                          ? opt === 'Active'
+                            ? 'bg-green-100 text-green-700 border-green-200'
+                            : 'bg-gray-100 text-gray-600 border-gray-200'
+                          : 'border-grey-border text-gray-500 hover:bg-grey-bg'
+                      }`}
+                    >
+                      {opt}
+                    </button>
+                  ))}
                 </div>
               </div>
             </div>

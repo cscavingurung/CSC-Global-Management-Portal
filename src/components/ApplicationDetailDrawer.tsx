@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
   X, User, Phone, Mail, Globe, Target, CalendarDays, FileText,
-  CheckCircle, AlertTriangle, Clock, ClipboardList,
+  CheckCircle, AlertTriangle,
 } from 'lucide-react';
 import { ApplicationRecord, ApplicationStatus, StatusHistoryEntry } from '../types';
 

@@ -40,11 +40,14 @@ export interface IntakeStudent {
 export interface Counselor {
   id: string;
   name: string;
-  branch: string;
+  country: string;
   activeAssignments: number;
+  capacity: number;
 }
 
 export type ConsultationStatus = 'Awaiting Consultation' | 'In Progress' | 'Consultation Complete';
+
+export type ConsultationOutcome = 'Pending' | 'Proceeding' | 'Not Proceeding';
 
 export interface CounselorStudent {
   id: string;
@@ -59,7 +62,7 @@ export interface CounselorStudent {
   consultationStatus: ConsultationStatus;
   consultationNotes: string;
   completedDate: string | null;
-  sentToApplication: boolean;
+  outcome: ConsultationOutcome;
 }
 
 export type ApplicationStatus = 'Preparation' | 'Lodgement' | 'Success' | 'Refused';
@@ -84,7 +87,7 @@ export interface ApplicationRecord {
   branch: string;
 }
 
-export type StaffRole = 'Receptionist' | 'Counselor' | 'Application Officer';
+export type StaffRole = 'Receptionist' | 'Counselor' | 'Application Officer' | 'Branch Manager';
 export type StaffStatus = 'Active' | 'Inactive';
 
 export interface StaffMember {
@@ -114,6 +117,21 @@ export interface Branch {
   visasGranted: number;
 }
 
+export type PartnerType = 'College' | 'University';
+
+export interface PartnerCourse {
+  name: string;
+  price: number;
+}
+
+export interface Partner {
+  id: string;
+  name: string;
+  type: PartnerType;
+  commissionRate: number;
+  courses: PartnerCourse[];
+}
+
 export type CommissionStatus = 'Pending' | 'Paid';
 
 export interface CommissionRecord {
@@ -121,7 +139,8 @@ export interface CommissionRecord {
   studentName: string;
   branch: string;
   consultant: string;
-  applicationStatus: ApplicationStatus;
-  amount: number;
+  partner: string;
+  fullFee: number;
+  commissionRate: number;
   commissionStatus: CommissionStatus;
 }

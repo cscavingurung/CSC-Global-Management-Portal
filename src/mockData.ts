@@ -1,4 +1,4 @@
-import { Role, NavItem, NavConfig, MockUser, IntakeStudent, Counselor, CounselorStudent, ApplicationRecord, StaffMember, ActivityEntry, Branch, CommissionRecord } from './types';
+import { Role, NavConfig, MockUser, IntakeStudent, Counselor, CounselorStudent, ApplicationRecord, StaffMember, ActivityEntry, Branch, CommissionRecord, Partner } from './types';
 
 export const ROLE_LABELS: Record<Role, string> = {
   super_admin: 'Super Admin',
@@ -26,6 +26,7 @@ export const NAV_CONFIG: NavConfig = {
     { key: 'branches', label: 'All Branches', icon: 'Building2' },
     { key: 'students', label: 'Students', icon: 'GraduationCap' },
     { key: 'applications', label: 'Applications', icon: 'FileText' },
+    { key: 'partners', label: 'Partners', icon: 'Landmark' },
     { key: 'commissions', label: 'Commissions', icon: 'DollarSign' },
     { key: 'staff', label: 'Staff', icon: 'Users' },
     { key: 'reports', label: 'Reports', icon: 'BarChart3' },
@@ -86,12 +87,12 @@ export const COUNTRIES = ['Australia', 'Canada', 'United Kingdom', 'USA', 'New Z
 export const PURPOSES = ['Study', 'Work', 'Tourist', 'PR'];
 
 export const MOCK_COUNSELORS: Counselor[] = [
-  { id: 'c1', name: 'Ramesh Thapa', branch: 'Sydney CBD', activeAssignments: 12 },
-  { id: 'c2', name: 'Sita Gurung', branch: 'Sydney CBD', activeAssignments: 8 },
-  { id: 'c3', name: 'Bikash Rai', branch: 'Parramatta', activeAssignments: 15 },
-  { id: 'c4', name: 'Anjali Shrestha', branch: 'Parramatta', activeAssignments: 6 },
-  { id: 'c5', name: 'Niraj Maharjan', branch: 'Sydney CBD', activeAssignments: 10 },
-  { id: 'c5', name: 'Milan Gurung', branch: 'Chitwan', activeAssignments: 10 },
+  { id: 'c1', name: 'Ramesh Thapa', country: 'Australia', activeAssignments: 12, capacity: 15 },
+  { id: 'c2', name: 'Sita Gurung', country: 'Canada', activeAssignments: 8, capacity: 12 },
+  { id: 'c3', name: 'Bikash Rai', country: 'United Kingdom', activeAssignments: 15, capacity: 15 },
+  { id: 'c4', name: 'Anjali Shrestha', country: 'USA', activeAssignments: 6, capacity: 12 },
+  { id: 'c5', name: 'Niraj Maharjan', country: 'New Zealand', activeAssignments: 10, capacity: 10 },
+  { id: 'c6', name: 'Milan Gurung', country: 'Australia', activeAssignments: 10, capacity: 14 },
 ];
 
 export const MOCK_STUDENTS: IntakeStudent[] = [
@@ -106,12 +107,12 @@ export const MOCK_STUDENTS: IntakeStudent[] = [
 ];
 
 export const MOCK_COUNSELOR_STUDENTS: CounselorStudent[] = [
-  { id: 'cs1', name: 'Arjun Mehta', phone: '+61 412 345 678', email: 'arjun.mehta@gmail.com', country: 'Australia', purpose: 'Study', submittedAt: '2026-09-14 09:15 AM', assignedDate: '2026-09-14', assignedCounselor: 'David Chen', consultationStatus: 'Awaiting Consultation', consultationNotes: '', completedDate: null, sentToApplication: false },
-  { id: 'cs2', name: 'Mohammed Ali', phone: '+61 445 123 456', email: 'm.ali@yahoo.com', country: 'United Kingdom', purpose: 'Work', submittedAt: '2026-09-13 03:20 PM', assignedDate: '2026-09-13', assignedCounselor: 'David Chen', consultationStatus: 'In Progress', consultationNotes: 'Client interested in skilled migration pathway. Needs IELTS assessment. Discussed employer sponsorship options.', completedDate: null, sentToApplication: false },
-  { id: 'cs3', name: 'Emily Park', phone: '+61 401 222 333', email: 'emily.park@gmail.com', country: 'New Zealand', purpose: 'Work', submittedAt: '2026-09-12 10:30 AM', assignedDate: '2026-09-12', assignedCounselor: 'David Chen', consultationStatus: 'Consultation Complete', consultationNotes: 'Client has valid job offer from Sydney employer. Recommended 482 visa (temporary skill shortage). All documents verified and ready for lodgement.', completedDate: '2026-09-13', sentToApplication: true },
-  { id: 'cs4', name: 'Ravi Gupta', phone: '+61 433 777 888', email: 'ravi.gupta@outlook.com', country: 'Canada', purpose: 'PR', submittedAt: '2026-09-11 02:15 PM', assignedDate: '2026-09-11', assignedCounselor: 'David Chen', consultationStatus: 'In Progress', consultationNotes: 'Client seeking permanent residency via Express Entry. Reviewed education credentials and work experience. Need to arrange WES assessment.', completedDate: null, sentToApplication: false },
-  { id: 'cs5', name: 'Anna Lee', phone: '+61 415 555 999', email: 'anna.lee@gmail.com', country: 'Australia', purpose: 'Study', submittedAt: '2026-09-11 09:00 AM', assignedDate: '2026-09-11', assignedCounselor: 'David Chen', consultationStatus: 'Awaiting Consultation', consultationNotes: '', completedDate: null, sentToApplication: false },
-  { id: 'cs6', name: 'Sara Khan', phone: '+61 478 456 789', email: 'sara.khan@gmail.com', country: 'USA', purpose: 'Tourist', submittedAt: '2026-09-13 01:10 PM', assignedDate: '2026-09-13', assignedCounselor: 'David Chen', consultationStatus: 'Consultation Complete', consultationNotes: 'Client applying for US B1/B2 tourist visa. Travel planned for December. Documents collected: passport, bank statements, employment letter.', completedDate: '2026-09-14', sentToApplication: false },
+  { id: 'cs1', name: 'Arjun Mehta', phone: '+61 412 345 678', email: 'arjun.mehta@gmail.com', country: 'Australia', purpose: 'Study', submittedAt: '2026-09-14 09:15 AM', assignedDate: '2026-09-14', assignedCounselor: 'David Chen', consultationStatus: 'Awaiting Consultation', consultationNotes: '', completedDate: null, outcome: 'Pending' },
+  { id: 'cs2', name: 'Mohammed Ali', phone: '+61 445 123 456', email: 'm.ali@yahoo.com', country: 'United Kingdom', purpose: 'Work', submittedAt: '2026-09-13 03:20 PM', assignedDate: '2026-09-13', assignedCounselor: 'David Chen', consultationStatus: 'In Progress', consultationNotes: 'Client interested in skilled migration pathway. Needs IELTS assessment. Discussed employer sponsorship options.', completedDate: null, outcome: 'Pending' },
+  { id: 'cs3', name: 'Emily Park', phone: '+61 401 222 333', email: 'emily.park@gmail.com', country: 'New Zealand', purpose: 'Work', submittedAt: '2026-09-12 10:30 AM', assignedDate: '2026-09-12', assignedCounselor: 'David Chen', consultationStatus: 'Consultation Complete', consultationNotes: 'Client has valid job offer from Sydney employer. Recommended 482 visa (temporary skill shortage). All documents verified and ready for lodgement.', completedDate: '2026-09-13', outcome: 'Proceeding' },
+  { id: 'cs4', name: 'Ravi Gupta', phone: '+61 433 777 888', email: 'ravi.gupta@outlook.com', country: 'Canada', purpose: 'PR', submittedAt: '2026-09-11 02:15 PM', assignedDate: '2026-09-11', assignedCounselor: 'David Chen', consultationStatus: 'In Progress', consultationNotes: 'Client seeking permanent residency via Express Entry. Reviewed education credentials and work experience. Need to arrange WES assessment.', completedDate: null, outcome: 'Pending' },
+  { id: 'cs5', name: 'Anna Lee', phone: '+61 415 555 999', email: 'anna.lee@gmail.com', country: 'Australia', purpose: 'Study', submittedAt: '2026-09-11 09:00 AM', assignedDate: '2026-09-11', assignedCounselor: 'David Chen', consultationStatus: 'Awaiting Consultation', consultationNotes: '', completedDate: null, outcome: 'Pending' },
+  { id: 'cs6', name: 'Sara Khan', phone: '+61 478 456 789', email: 'sara.khan@gmail.com', country: 'USA', purpose: 'Tourist', submittedAt: '2026-09-13 01:10 PM', assignedDate: '2026-09-13', assignedCounselor: 'David Chen', consultationStatus: 'Consultation Complete', consultationNotes: 'Client applying for US B1/B2 tourist visa. Travel planned for December. Documents collected: passport, bank statements, employment letter.', completedDate: '2026-09-14', outcome: 'Not Proceeding' },
 ];
 
 export const MOCK_APPLICATIONS: ApplicationRecord[] = [
@@ -298,13 +299,41 @@ export const SUPER_ADMIN_STATS = [
   { label: 'Total Staff', value: '47', icon: 'Users', trend: '+5 this quarter', trendUp: true },
 ];
 
+export const MOCK_PARTNERS: Partner[] = [
+  { id: 'p1', name: 'University of Sydney', type: 'University', commissionRate: 15, courses: [
+    { name: 'Bachelor of Commerce', price: 45000 },
+    { name: 'Master of IT', price: 42000 },
+    { name: 'Master of Engineering', price: 48000 },
+  ] },
+  { id: 'p2', name: 'Monash University', type: 'University', commissionRate: 12, courses: [
+    { name: 'Bachelor of Business', price: 40000 },
+    { name: 'Master of Data Science', price: 44000 },
+  ] },
+  { id: 'p3', name: 'University of Melbourne', type: 'University', commissionRate: 15, courses: [
+    { name: 'Master of Public Health', price: 46000 },
+    { name: 'Bachelor of Science', price: 43000 },
+  ] },
+  { id: 'p4', name: 'University of Toronto', type: 'University', commissionRate: 10, courses: [
+    { name: 'Bachelor of Arts', price: 38000 },
+    { name: 'Master of Finance', price: 41000 },
+  ] },
+  { id: 'p5', name: 'Holmes Institute', type: 'College', commissionRate: 18, courses: [
+    { name: 'Diploma of Business', price: 18000 },
+    { name: 'Certificate IV in Accounting', price: 12000 },
+  ] },
+  { id: 'p6', name: 'William Angliss Institute', type: 'College', commissionRate: 16, courses: [
+    { name: 'Diploma of Hospitality Management', price: 20000 },
+    { name: 'Certificate III in Commercial Cookery', price: 14000 },
+  ] },
+];
+
 export const MOCK_COMMISSIONS: CommissionRecord[] = [
-  { id: 'cm1', studentName: 'Emily Park', branch: 'Chitwan', consultant: 'David Chen', applicationStatus: 'Lodgement', amount: 2500, commissionStatus: 'Pending' },
-  { id: 'cm2', studentName: 'Sara Khan', branch: 'Pokhara', consultant: 'David Chen', applicationStatus: 'Preparation', amount: 1800, commissionStatus: 'Pending' },
-  { id: 'cm3', studentName: 'Deepak Thapa', branch: 'New Baneshwor', consultant: 'Sita Gurung', applicationStatus: 'Success', amount: 3200, commissionStatus: 'Paid' },
-  { id: 'cm4', studentName: 'Ravi Gupta', branch: 'Butwal', consultant: 'David Chen', applicationStatus: 'Lodgement', amount: 2800, commissionStatus: 'Pending' },
-  { id: 'cm5', studentName: 'Arjun Mehta', branch: 'Kamaltadi', consultant: 'Ramesh Thapa', applicationStatus: 'Preparation', amount: 1500, commissionStatus: 'Pending' },
-  { id: 'cm6', studentName: 'Lina Zhang', branch: 'Butwal', consultant: 'Bikash Rai', applicationStatus: 'Refused', amount: 0, commissionStatus: 'Paid' },
-  { id: 'cm7', studentName: 'Mohammed Ali', branch: 'Kamaltadi', consultant: 'David Chen', applicationStatus: 'Preparation', amount: 2200, commissionStatus: 'Pending' },
-  { id: 'cm8', studentName: 'Anna Lee', branch: 'Pokhara', consultant: 'Ramesh Thapa', applicationStatus: 'Lodgement', amount: 2600, commissionStatus: 'Paid' },
+  { id: 'cm1', studentName: 'Emily Park', branch: 'Chitwan', consultant: 'David Chen', partner: 'University of Sydney', fullFee: 32000, commissionRate: 15, commissionStatus: 'Pending' },
+  { id: 'cm2', studentName: 'Sara Khan', branch: 'Pokhara', consultant: 'David Chen', partner: 'Monash University', fullFee: 28000, commissionRate: 12, commissionStatus: 'Pending' },
+  { id: 'cm3', studentName: 'Deepak Thapa', branch: 'New Baneshwor', consultant: 'Sita Gurung', partner: 'University of Melbourne', fullFee: 35000, commissionRate: 15, commissionStatus: 'Paid' },
+  { id: 'cm4', studentName: 'Ravi Gupta', branch: 'Butwal', consultant: 'David Chen', partner: 'University of Toronto', fullFee: 30000, commissionRate: 10, commissionStatus: 'Pending' },
+  { id: 'cm5', studentName: 'Arjun Mehta', branch: 'Kamaltadi', consultant: 'Ramesh Thapa', partner: 'University of Sydney', fullFee: 27000, commissionRate: 15, commissionStatus: 'Pending' },
+  { id: 'cm6', studentName: 'Lina Zhang', branch: 'Butwal', consultant: 'Bikash Rai', partner: 'Monash University', fullFee: 26000, commissionRate: 12, commissionStatus: 'Paid' },
+  { id: 'cm7', studentName: 'Mohammed Ali', branch: 'Kamaltadi', consultant: 'David Chen', partner: 'University of Melbourne', fullFee: 31000, commissionRate: 15, commissionStatus: 'Pending' },
+  { id: 'cm8', studentName: 'Anna Lee', branch: 'Pokhara', consultant: 'Ramesh Thapa', partner: 'University of Toronto', fullFee: 29000, commissionRate: 10, commissionStatus: 'Paid' },
 ];

@@ -1,42 +1,77 @@
 import { useState, useMemo } from 'react';
 import { Search, X, Eye, CalendarDays, FileText } from 'lucide-react';
-import { CounselorStudent } from '../types';
+import { CounselorStudent, ConsultationOutcome } from '../types';
 import StudentDetailDrawer from './StudentDetailDrawer';
 
 interface ConsultationsPageProps {
   students: CounselorStudent[];
+  onUpdateStudent: (id: string, updates: Partial<CounselorStudent>) => void;
 }
 
-export default function ConsultationsPage({ students }: ConsultationsPageProps) {
+type OutcomeFilter = 'all' | ConsultationOutcome;
+
+const OUTCOME_FILTER_OPTIONS: { value: OutcomeFilter; label: string }[] = [
+  { value: 'all', label: 'All' },
+  { value: 'Pending', label: 'Pending' },
+  { value: 'Proceeding', label: 'Proceeding' },
+  { value: 'Not Proceeding', label: 'Not Proceeding' },
+];
+
+const OUTCOME_STYLES: Record<ConsultationOutcome, string> = {
+  Pending: 'bg-gray-100 text-gray-600',
+  Proceeding: 'bg-green-100 text-green-700',
+  'Not Proceeding': 'bg-red-100 text-red-700',
+};
+
+export default function ConsultationsPage({ students, onUpdateStudent }: ConsultationsPageProps) {
   const [search, setSearch] = useState('');
+  const [outcomeFilter, setOutcomeFilter] = useState<OutcomeFilter>('all');
   const [viewStudent, setViewStudent] = useState<CounselorStudent | null>(null);
 
   const completed = useMemo(() => {
     return students
       .filter((s) => s.consultationStatus === 'Consultation Complete')
+      .filter((s) => outcomeFilter === 'all' || s.outcome === outcomeFilter)
       .filter((s) => s.name.toLowerCase().includes(search.toLowerCase()));
-  }, [students, search]);
+  }, [students, search, outcomeFilter]);
 
   return (
     <div className="space-y-5">
-      {/* Search bar */}
-      <div className="relative">
-        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search completed consultations"
-          className="w-full pl-10 pr-4 py-2.5 border border-grey-border rounded-lg text-sm bg-white focus:outline-none focus:border-navy-light focus:ring-1 focus:ring-navy-light transition-colors"
-        />
-        {search && (
-          <button
-            onClick={() => setSearch('')}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-navy"
-          >
-            <X size={16} />
-          </button>
-        )}
+      {/* Search & filter bar */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search completed consultations"
+            className="w-full pl-10 pr-4 py-2.5 border border-grey-border rounded-lg text-sm bg-white focus:outline-none focus:border-navy-light focus:ring-1 focus:ring-navy-light transition-colors"
+          />
+          {search && (
+            <button
+              onClick={() => setSearch('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-navy"
+            >
+              <X size={16} />
+            </button>
+          )}
+        </div>
+        <div className="flex gap-1 bg-white border border-grey-border rounded-lg p-1 overflow-x-auto">
+          {OUTCOME_FILTER_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => setOutcomeFilter(opt.value)}
+              className={`px-3 py-1.5 rounded-md text-sm font-medium whitespace-nowrap transition-colors ${
+                outcomeFilter === opt.value
+                  ? 'bg-navy text-white'
+                  : 'text-gray-500 hover:text-navy hover:bg-grey-bg'
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Summary */}
@@ -57,7 +92,12 @@ export default function ConsultationsPage({ students }: ConsultationsPageProps) 
                 <CalendarDays className="text-green-600" size={20} />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-navy">{s.name}</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-semibold text-navy truncate">{s.name}</p>
+                  <span className={`text-xs font-medium px-2 py-0.5 rounded-full flex-shrink-0 ${OUTCOME_STYLES[s.outcome]}`}>
+                    {s.outcome}
+                  </span>
+                </div>
                 <div className="flex items-center gap-3 text-xs text-gray-500 mt-0.5">
                   <span>Completed: {s.completedDate}</span>
                   <span className="text-gray-300">·</span>
@@ -74,6 +114,8 @@ export default function ConsultationsPage({ students }: ConsultationsPageProps) 
             </div>
           ))}
         </div>
+      ) : search || outcomeFilter !== 'all' ? (
+        <div className="py-12 text-center text-sm text-gray-400">No consultations found.</div>
       ) : (
         <div className="py-16 text-center">
           <div className="w-14 h-14 rounded-2xl bg-navy/5 flex items-center justify-center mx-auto mb-4">
@@ -83,12 +125,15 @@ export default function ConsultationsPage({ students }: ConsultationsPageProps) 
         </div>
       )}
 
-      {/* Read-only detail drawer */}
+      {/* Detail drawer */}
       {viewStudent && (
         <StudentDetailDrawer
           student={viewStudent}
           onClose={() => setViewStudent(null)}
-          onUpdate={() => {}}
+          onUpdate={(updates) => {
+            onUpdateStudent(viewStudent.id, updates);
+            setViewStudent({ ...viewStudent, ...updates });
+          }}
         />
       )}
     </div>
