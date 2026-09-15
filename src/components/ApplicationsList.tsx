@@ -1,0 +1,197 @@
+import { useState, useMemo } from 'react';
+import { Search, X, ChevronRight, ChevronDown } from 'lucide-react';
+import { ApplicationRecord, ApplicationStatus } from '../types';
+import ApplicationDetailDrawer from './ApplicationDetailDrawer';
+
+interface ApplicationsListProps {
+  applications: ApplicationRecord[];
+  onUpdateApplication: (id: string, updates: Partial<ApplicationRecord>) => void;
+  branches?: string[];
+  showBranchFilter?: boolean;
+}
+
+type StatusFilter = 'all' | ApplicationStatus;
+
+const STATUS_STYLES: Record<ApplicationStatus, string> = {
+  Preparation: 'bg-gray-100 text-gray-600',
+  Lodgement: 'bg-navy text-white',
+  Success: 'bg-green-100 text-green-700',
+  Refused: 'bg-red-100 text-red-700',
+};
+
+const STATUS_FILTER_OPTIONS: { value: StatusFilter; label: string }[] = [
+  { value: 'all', label: 'All' },
+  { value: 'Preparation', label: 'Preparation' },
+  { value: 'Lodgement', label: 'Lodgement' },
+  { value: 'Success', label: 'Success' },
+  { value: 'Refused', label: 'Refused' },
+];
+
+export default function ApplicationsList({ applications, onUpdateApplication, branches, showBranchFilter }: ApplicationsListProps) {
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [branchFilter, setBranchFilter] = useState<string>('all');
+  const [selectedApp, setSelectedApp] = useState<ApplicationRecord | null>(null);
+
+  const filtered = useMemo(() => {
+    return applications.filter((a) => {
+      const matchesSearch = a.name.toLowerCase().includes(search.toLowerCase());
+      const matchesStatus = statusFilter === 'all' || a.status === statusFilter;
+      const matchesBranch = !showBranchFilter || branchFilter === 'all' || a.branch === branchFilter;
+      return matchesSearch && matchesStatus && matchesBranch;
+    });
+  }, [applications, search, statusFilter, branchFilter, showBranchFilter]);
+
+  return (
+    <div className="space-y-5">
+      {/* Search & filter bar */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search by name"
+            className="w-full pl-10 pr-4 py-2.5 border border-grey-border rounded-lg text-sm bg-white focus:outline-none focus:border-navy-light focus:ring-1 focus:ring-navy-light transition-colors"
+          />
+          {search && (
+            <button
+              onClick={() => setSearch('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-navy"
+            >
+              <X size={16} />
+            </button>
+          )}
+        </div>
+
+        <div className="flex gap-1 bg-white border border-grey-border rounded-lg p-1 overflow-x-auto">
+          {STATUS_FILTER_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => setStatusFilter(opt.value)}
+              className={`px-3 py-1.5 rounded-md text-sm font-medium whitespace-nowrap transition-colors ${
+                statusFilter === opt.value
+                  ? 'bg-navy text-white'
+                  : 'text-gray-500 hover:text-navy hover:bg-grey-bg'
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+        {showBranchFilter && branches && (
+          <div className="relative">
+            <select
+              value={branchFilter}
+              onChange={(e) => setBranchFilter(e.target.value)}
+              className="appearance-none bg-white border border-grey-border rounded-lg pl-3 pr-9 py-2.5 text-sm font-medium text-navy focus:outline-none focus:border-navy-light focus:ring-1 focus:ring-navy-light transition-colors"
+            >
+              <option value="all">All Branches</option>
+              {branches.map((b) => (
+                <option key={b} value={b}>{b}</option>
+              ))}
+            </select>
+            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
+          </div>
+        )}
+      </div>
+
+      {/* Table — desktop */}
+      <div className="hidden lg:block bg-white rounded-xl border border-grey-border overflow-hidden">
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-grey-border bg-grey-bg">
+              <th className="text-left text-xs font-semibold text-gray-500 px-5 py-3">Name</th>
+              <th className="text-left text-xs font-semibold text-gray-500 px-5 py-3">Phone</th>
+              <th className="text-left text-xs font-semibold text-gray-500 px-5 py-3">Country</th>
+              <th className="text-left text-xs font-semibold text-gray-500 px-5 py-3">Purpose</th>
+              <th className="text-left text-xs font-semibold text-gray-500 px-5 py-3">Counselor</th>
+              <th className="text-left text-xs font-semibold text-gray-500 px-5 py-3">Consultation</th>
+              {showBranchFilter && <th className="text-left text-xs font-semibold text-gray-500 px-5 py-3">Branch</th>}
+              <th className="text-left text-xs font-semibold text-gray-500 px-5 py-3">Status</th>
+              <th className="text-right text-xs font-semibold text-gray-500 px-5 py-3"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.map((a) => (
+              <tr
+                key={a.id}
+                onClick={() => setSelectedApp(a)}
+                className="border-b border-grey-border last:border-0 hover:bg-grey-bg/50 transition-colors cursor-pointer"
+              >
+                <td className="px-5 py-3.5">
+                  <p className="text-sm font-medium text-navy">{a.name}</p>
+                  <p className="text-xs text-gray-400">{a.email}</p>
+                </td>
+                <td className="px-5 py-3.5 text-sm text-gray-600">{a.phone}</td>
+                <td className="px-5 py-3.5 text-sm text-gray-600">{a.country}</td>
+                <td className="px-5 py-3.5 text-sm text-gray-600">{a.purpose}</td>
+                <td className="px-5 py-3.5 text-sm text-gray-600">{a.counselor}</td>
+                <td className="px-5 py-3.5 text-sm text-gray-500 whitespace-nowrap">{a.consultationDate}</td>
+                {showBranchFilter && <td className="px-5 py-3.5 text-sm text-gray-600">{a.branch}</td>}
+                <td className="px-5 py-3.5">
+                  <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${STATUS_STYLES[a.status]}`}>
+                    {a.status}
+                  </span>
+                </td>
+                <td className="px-5 py-3.5 text-right">
+                  <ChevronRight className="text-gray-300 inline" size={18} />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {filtered.length === 0 && (
+          <div className="py-12 text-center text-sm text-gray-400">No applications found.</div>
+        )}
+      </div>
+
+      {/* Card list — mobile */}
+      <div className="lg:hidden space-y-3">
+        {filtered.map((a) => (
+          <button
+            key={a.id}
+            onClick={() => setSelectedApp(a)}
+            className="w-full text-left bg-white rounded-xl border border-grey-border p-4 hover:shadow-md transition-shadow"
+          >
+            <div className="flex items-start justify-between mb-2">
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-navy">{a.name}</p>
+                <p className="text-xs text-gray-400">{a.email}</p>
+              </div>
+              <span className={`text-xs font-medium px-2.5 py-1 rounded-full flex-shrink-0 ml-2 ${STATUS_STYLES[a.status]}`}>
+                {a.status}
+              </span>
+            </div>
+            <div className="grid grid-cols-2 gap-2 text-xs text-gray-500 mb-3">
+              <p>Country: <span className="text-gray-700">{a.country}</span></p>
+              <p>Purpose: <span className="text-gray-700">{a.purpose}</span></p>
+              <p>Counselor: <span className="text-gray-700">{a.counselor}</span></p>
+              <p>Consultation: <span className="text-gray-700">{a.consultationDate}</span></p>
+            </div>
+            <div className="flex items-center justify-between pt-3 border-t border-grey-border">
+              <p className="text-xs text-gray-400">Tap to view details</p>
+              <ChevronRight className="text-gray-300" size={16} />
+            </div>
+          </button>
+        ))}
+        {filtered.length === 0 && (
+          <div className="py-12 text-center text-sm text-gray-400">No applications found.</div>
+        )}
+      </div>
+
+      {/* Detail drawer */}
+      {selectedApp && (
+        <ApplicationDetailDrawer
+          application={selectedApp}
+          onClose={() => setSelectedApp(null)}
+          onUpdate={(updates) => {
+            onUpdateApplication(selectedApp.id, updates);
+            setSelectedApp({ ...selectedApp, ...updates });
+          }}
+        />
+      )}
+    </div>
+  );
+}
