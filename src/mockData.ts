@@ -320,12 +320,12 @@ export const MOCK_ACTIVITY_FEED: ActivityEntry[] = [
 ];
 
 export const MOCK_BRANCHES: Branch[] = [
-  { id: 'b1', name: 'Chitwan', location: 'Chitwan', manager: 'Bishal Adhikari', staffCount: 8, activeStudents: 45, applicationsInProgress: 12, visasGranted: 18, visasRefused: 2 },
-  { id: 'b2', name: 'Butwal', location: 'Butwal', manager: 'Suresh Karki', staffCount: 6, activeStudents: 32, applicationsInProgress: 8, visasGranted: 14, visasRefused: 2 },
-  { id: 'b3', name: 'Kamaladi', location: 'Kamaladi', manager: 'Sibendra Subedi', staffCount: 7, activeStudents: 38, applicationsInProgress: 10, visasGranted: 11, visasRefused: 8 },
-  { id: 'b4', name: 'New Baneshwor', location: 'New Baneshwor', manager: 'Bidhya Basnet', staffCount: 5, activeStudents: 28, applicationsInProgress: 6, visasGranted: 9, visasRefused: 1 },
-  { id: 'b5', name: 'Putalisadak', location: 'Putalisadak', manager: 'Samjhana Khanal', staffCount: 9, activeStudents: 52, applicationsInProgress: 15, visasGranted: 22, visasRefused: 2 },
-  { id: 'b6', name: 'Kumaripati', location: 'Kumaripati', manager: 'Dilli Pokharel', staffCount: 12, activeStudents: 68, applicationsInProgress: 20, visasGranted: 31, visasRefused: 3 },
+  { id: 'b1', name: 'Chitwan', location: 'Chitwan', manager: 'Bishal Adhikari' },
+  { id: 'b2', name: 'Butwal', location: 'Butwal', manager: 'Suresh Karki' },
+  { id: 'b3', name: 'Kamaladi', location: 'Kamaladi', manager: 'Sibendra Subedi' },
+  { id: 'b4', name: 'New Baneshwor', location: 'New Baneshwor', manager: 'Bidhya Basnet' },
+  { id: 'b5', name: 'Putalisadak', location: 'Putalisadak', manager: 'Samjhana Khanal' },
+  { id: 'b6', name: 'Kumaripati', location: 'Kumaripati', manager: 'Dilli Pokharel' },
 ];
 
 export const SUPER_ADMIN_STATS = [

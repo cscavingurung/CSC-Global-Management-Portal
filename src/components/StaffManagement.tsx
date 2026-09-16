@@ -5,10 +5,11 @@ import {
 } from 'lucide-react';
 import { StaffMember, StaffRole, StaffStatus } from '../types';
 import { isValidEmail, PASSWORD_PATTERN } from '../validation';
+import { COUNTRIES } from '../mockData';
 
 interface StaffManagementProps {
   staff: StaffMember[];
-  onAddStaff: (member: StaffMember) => void;
+  onAddStaff: (member: StaffMember, counselorCountry?: string) => void;
   onUpdateStaff: (id: string, updates: Partial<StaffMember>) => void;
   onRemoveStaff: (id: string) => void;
   branches?: string[];
@@ -30,7 +31,7 @@ export default function StaffManagement({ staff, onAddStaff, onUpdateStaff, onRe
   const [removeTarget, setRemoveTarget] = useState<StaffMember | null>(null);
   const [selectedStaffId, setSelectedStaffId] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
-  const [newStaff, setNewStaff] = useState({ name: '', email: '', password: '', role: 'Receptionist' as StaffRole, branch: (branches && branches[0]) || 'Sydney CBD' });
+  const [newStaff, setNewStaff] = useState({ name: '', email: '', password: '', role: 'Receptionist' as StaffRole, branch: (branches && branches[0]) || 'Sydney CBD', country: COUNTRIES[0] });
   const newStaffEmailRef = useRef<HTMLInputElement>(null);
 
   const selectedStaff = staff.find((s) => s.id === selectedStaffId) ?? null;
@@ -63,8 +64,8 @@ export default function StaffManagement({ staff, onAddStaff, onUpdateStaff, onRe
       status: 'Active',
       branch: newStaff.branch,
     };
-    onAddStaff(member);
-    setNewStaff({ name: '', email: '', password: '', role: 'Receptionist', branch: (branches && branches[0]) || 'Sydney CBD' });
+    onAddStaff(member, newStaff.role === 'Counselor' ? newStaff.country : undefined);
+    setNewStaff({ name: '', email: '', password: '', role: 'Receptionist', branch: (branches && branches[0]) || 'Sydney CBD', country: COUNTRIES[0] });
     setShowPassword(false);
     setShowAddForm(false);
   };
@@ -313,6 +314,24 @@ export default function StaffManagement({ staff, onAddStaff, onUpdateStaff, onRe
                   <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
                 </div>
               </div>
+              {newStaff.role === 'Counselor' && (
+                <div>
+                  <label className="block text-sm font-medium text-navy mb-1.5">Specialization Country</label>
+                  <div className="relative">
+                    <select
+                      value={newStaff.country}
+                      onChange={(e) => setNewStaff({ ...newStaff, country: e.target.value })}
+                      className="w-full px-4 py-2.5 border border-grey-border rounded-lg text-sm focus:outline-none focus:border-navy-light focus:ring-1 focus:ring-navy-light transition-colors appearance-none bg-white"
+                    >
+                      {COUNTRIES.map((c) => (
+                        <option key={c} value={c}>{c}</option>
+                      ))}
+                    </select>
+                    <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
+                  </div>
+                  <p className="text-xs text-gray-400 mt-1.5">Adds this counselor to the roster used on Assign Counselor.</p>
+                </div>
+              )}
               {showBranchFilter && branches && (
                 <div>
                   <label className="block text-sm font-medium text-navy mb-1.5">Branch</label>

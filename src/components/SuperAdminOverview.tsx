@@ -3,13 +3,15 @@ import {
   GraduationCap, CalendarDays, FileText, CheckCircle, TrendingUp,
   ArrowUp, ArrowDown, ArrowUpDown, UserX, FileClock, TrendingDown, type LucideIcon,
 } from 'lucide-react';
-import { ApplicationStatus, Branch, IntakeStudent, ApplicationRecord } from '../types';
+import { ApplicationStatus, Branch, IntakeStudent, ApplicationRecord, StaffMember } from '../types';
 import { parseSubmittedAt } from '../dateTime';
 import { daysInCurrentStatus, latestStatusHistoryDate } from '../applicationHistory';
+import { computeBranchLiveStats } from '../branchLiveStats';
 import type { AggregatedBranchStats } from '../lib/branchOverviewApi';
 
 interface SuperAdminOverviewProps {
   branches: Branch[];
+  staff: StaffMember[];
   students: IntakeStudent[];
   applications: ApplicationRecord[];
   stats: AggregatedBranchStats;
@@ -22,6 +24,11 @@ const SUCCESS_RATE_GAP_THRESHOLD = 10;
 type SortKey = 'name' | 'manager' | 'staffCount' | 'activeStudents' | 'applicationsInProgress' | 'visasGranted' | 'successRate';
 
 interface BranchRow extends Branch {
+  staffCount: number;
+  activeStudents: number;
+  applicationsInProgress: number;
+  visasGranted: number;
+  visasRefused: number;
   successRate: number;
 }
 
@@ -37,7 +44,7 @@ function successRateOf(granted: number, refused: number): number {
   return granted + refused > 0 ? (granted / (granted + refused)) * 100 : 0;
 }
 
-export default function SuperAdminOverview({ branches, students, applications, stats }: SuperAdminOverviewProps) {
+export default function SuperAdminOverview({ branches, staff, students, applications, stats }: SuperAdminOverviewProps) {
   const [sortKey, setSortKey] = useState<SortKey>('activeStudents');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
@@ -51,8 +58,11 @@ export default function SuperAdminOverview({ branches, students, applications, s
   };
 
   const branchRows = useMemo<BranchRow[]>(
-    () => branches.map((b) => ({ ...b, successRate: successRateOf(b.visasGranted, b.visasRefused) })),
-    [branches]
+    () => branches.map((b) => {
+      const live = computeBranchLiveStats(b.name, staff, students, applications);
+      return { ...b, ...live, successRate: successRateOf(live.visasGranted, live.visasRefused) };
+    }),
+    [branches, staff, students, applications]
   );
 
   const sortedBranches = useMemo(() => {
@@ -76,16 +86,16 @@ export default function SuperAdminOverview({ branches, students, applications, s
   }, [branchRows, sortKey, sortDir]);
 
   const totals = useMemo(() => {
-    const staffCount = branches.reduce((s, b) => s + b.staffCount, 0);
-    const activeStudents = branches.reduce((s, b) => s + b.activeStudents, 0);
-    const applicationsInProgress = branches.reduce((s, b) => s + b.applicationsInProgress, 0);
-    const visasGranted = branches.reduce((s, b) => s + b.visasGranted, 0);
-    const visasRefused = branches.reduce((s, b) => s + b.visasRefused, 0);
+    const staffCount = branchRows.reduce((s, b) => s + b.staffCount, 0);
+    const activeStudents = branchRows.reduce((s, b) => s + b.activeStudents, 0);
+    const applicationsInProgress = branchRows.reduce((s, b) => s + b.applicationsInProgress, 0);
+    const visasGranted = branchRows.reduce((s, b) => s + b.visasGranted, 0);
+    const visasRefused = branchRows.reduce((s, b) => s + b.visasRefused, 0);
     return {
       staffCount, activeStudents, applicationsInProgress, visasGranted,
       successRate: successRateOf(visasGranted, visasRefused),
     };
-  }, [branches]);
+  }, [branchRows]);
 
   // Treat the latest timestamp across all students and applications as "now" — the mock
   // dataset has no live clock, so the latest timestamp anchors day counts.

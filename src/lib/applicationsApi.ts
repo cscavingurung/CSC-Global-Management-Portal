@@ -33,6 +33,23 @@ function fromRow(row: ApplicationRow): ApplicationRecord {
   };
 }
 
+function toRow(a: ApplicationRecord): ApplicationRow {
+  return {
+    id: a.id,
+    name: a.name,
+    phone: a.phone,
+    email: a.email,
+    country: a.country,
+    purpose: a.purpose,
+    counselor: a.counselor,
+    consultation_date: a.consultationDate,
+    consultation_notes: a.consultationNotes,
+    status: a.status,
+    status_history: a.statusHistory,
+    branch: a.branch,
+  };
+}
+
 function toRowUpdates(updates: Partial<ApplicationRecord>): Record<string, unknown> {
   const row: Record<string, unknown> = {};
   if (updates.name !== undefined) row.name = updates.name;
@@ -57,6 +74,12 @@ export async function fetchApplications(): Promise<ApplicationRecord[]> {
     .order('consultation_date', { ascending: false });
   if (error) throw error;
   return (data as ApplicationRow[]).map(fromRow);
+}
+
+export async function insertApplication(application: ApplicationRecord): Promise<void> {
+  if (!supabase) return;
+  const { error } = await supabase.from('applications').insert(toRow(application));
+  if (error) throw error;
 }
 
 export async function updateApplication(id: string, updates: Partial<ApplicationRecord>): Promise<void> {

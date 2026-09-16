@@ -52,6 +52,30 @@ function toRowUpdates(updates: Partial<CounselorStudent>): Record<string, unknow
   return row;
 }
 
+function toRow(cs: CounselorStudent): CounselorStudentRow {
+  return {
+    id: cs.id,
+    name: cs.name,
+    phone: cs.phone,
+    email: cs.email,
+    country: cs.country,
+    purpose: cs.purpose,
+    submitted_at: cs.submittedAt,
+    assigned_date: cs.assignedDate,
+    assigned_counselor: cs.assignedCounselor,
+    consultation_status: cs.consultationStatus,
+    consultation_notes: cs.consultationNotes,
+    completed_date: cs.completedDate,
+    outcome: cs.outcome,
+  };
+}
+
+export async function insertCounselorStudent(counselorStudent: CounselorStudent): Promise<void> {
+  if (!supabase) return;
+  const { error } = await supabase.from('counselor_students').insert(toRow(counselorStudent));
+  if (error) throw error;
+}
+
 export async function fetchCounselorStudents(): Promise<CounselorStudent[]> {
   if (!supabase) return [];
   const { data, error } = await supabase

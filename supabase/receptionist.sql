@@ -33,7 +33,9 @@ create policy "Allow anon read" on students for select using (true);
 create policy "Allow anon insert" on students for insert with check (true);
 create policy "Allow anon update" on students for update using (true);
 
--- Seed data matching the app's previous mock data (MOCK_STUDENTS in src/mockData.ts).
+-- Seed data (optional) — commented out since real data will be entered through the app.
+-- Uncomment (remove the /* and */) if you ever want sample rows to test against.
+/*
 insert into students (id, name, phone, email, country, purpose, preferred_date, submitted_at, status, assigned_counselor, branch) values
   ('s1', 'Arjun Mehta', '+61 412 345 678', 'arjun.mehta@gmail.com', 'Australia', 'Study', '2026-09-16T10:00', '2026-09-14 09:15 AM', 'New', null, 'Chitwan'),
   ('s2', 'Lina Zhang', '+61 423 987 654', 'lina.zhang@outlook.com', 'Canada', 'PR', '2026-09-18T14:00', '2026-09-14 08:42 AM', 'New', null, 'Butwal'),
@@ -44,6 +46,7 @@ insert into students (id, name, phone, email, country, purpose, preferred_date, 
   ('s7', 'Ravi Gupta', '+61 433 777 888', 'ravi.gupta@outlook.com', 'Canada', 'PR', '2026-09-18T16:00', '2026-09-11 02:15 PM', 'Assigned', 'Bikash Rai', 'Butwal'),
   ('s8', 'Anna Lee', '+61 415 555 999', 'anna.lee@gmail.com', 'Australia', 'Study', '2026-09-22T10:30', '2026-09-11 09:00 AM', 'New', null, 'Butwal')
 on conflict (id) do nothing;
+*/
 
 create table if not exists counselors (
   id text primary key,
@@ -58,8 +61,12 @@ alter table counselors enable row level security;
 create policy "Allow anon read" on counselors for select using (true);
 create policy "Allow anon insert" on counselors for insert with check (true);
 create policy "Allow anon update" on counselors for update using (true);
+create policy "Allow anon delete" on counselors for delete using (true);
 
--- Seed data matching the app's previous mock data (MOCK_COUNSELORS in src/mockData.ts).
+-- Seed data (optional) — commented out since real counselor roster entries are created
+-- automatically when a Branch Manager or Super Admin adds a Counselor via Staff Management
+-- (see handleAddStaff in src/App.tsx). Uncomment if you ever want sample rows to test against.
+/*
 insert into counselors (id, name, country, active_assignments, availability) values
   ('c1', 'Ramesh Thapa', 'Australia', 12, 'Available'),
   ('c2', 'Sita Gurung', 'Canada', 8, 'In Session'),
@@ -68,6 +75,7 @@ insert into counselors (id, name, country, active_assignments, availability) val
   ('c5', 'Niraj Maharjan', 'New Zealand', 10, 'In Session'),
   ('c6', 'Milan Gurung', 'Australia', 10, 'Available')
 on conflict (id) do nothing;
+*/
 
 -- Enable realtime broadcasting (INSERT/UPDATE/DELETE) for both tables. Safe to re-run —
 -- the exception handler skips a table that's already in the publication.

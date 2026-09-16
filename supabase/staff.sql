@@ -26,7 +26,9 @@ create policy "Allow anon insert" on staff for insert with check (true);
 create policy "Allow anon update" on staff for update using (true);
 create policy "Allow anon delete" on staff for delete using (true);
 
--- Seed data matching the app's previous mock data (MOCK_STAFF in src/mockData.ts).
+-- Seed data (optional) — commented out since real staff will be entered through the app's
+-- Add Staff form. Uncomment (remove the /* and */) if you ever want sample rows to test against.
+/*
 insert into staff (id, name, email, password, role, status, branch) values
   ('st1', 'Jessica Wong', 'jessica@everestvisa.com', 'Passw0rd1', 'Receptionist', 'Active', 'Sydney CBD'),
   ('st2', 'Ramesh Thapa', 'ramesh@everestvisa.com', 'Passw0rd1', 'Counselor', 'Active', 'Sydney CBD'),
@@ -35,6 +37,7 @@ insert into staff (id, name, email, password, role, status, branch) values
   ('st5', 'Maria Santos', 'maria@everestvisa.com', 'Passw0rd1', 'Application Officer', 'Active', 'Sydney CBD'),
   ('st6', 'John Smith', 'john@everestvisa.com', 'Passw0rd1', 'Application Officer', 'Active', 'Sydney CBD')
 on conflict (id) do nothing;
+*/
 
 -- Enable realtime broadcasting (INSERT/UPDATE/DELETE). Safe to re-run — the exception
 -- handler skips it if the table is already in the publication.

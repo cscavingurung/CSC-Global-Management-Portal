@@ -114,11 +114,6 @@ export interface Branch {
   name: string;
   location: string;
   manager: string | null;
-  staffCount: number;
-  activeStudents: number;
-  applicationsInProgress: number;
-  visasGranted: number;
-  visasRefused: number;
 }
 
 export type PartnerType = 'College' | 'University';

@@ -27,10 +27,10 @@ import {
 } from './mockData';
 import { createIntakeNotification, createAssignmentNotification, createConsultationReadyNotification } from './notifications';
 import { fetchNotifications, insertNotification, markNotificationRead, markNotificationsRead } from './lib/notificationsApi';
-import { fetchCounselorStudents, updateCounselorStudent } from './lib/counselorStudentsApi';
+import { fetchCounselorStudents, updateCounselorStudent, insertCounselorStudent } from './lib/counselorStudentsApi';
 import { fetchStudents, insertStudent, updateStudent } from './lib/studentsApi';
-import { fetchCounselors } from './lib/counselorsApi';
-import { fetchApplications, updateApplication } from './lib/applicationsApi';
+import { fetchCounselors, insertCounselor, updateCounselor, deleteCounselor } from './lib/counselorsApi';
+import { fetchApplications, updateApplication, insertApplication } from './lib/applicationsApi';
 import { fetchStaff, insertStaff, updateStaff, deleteStaff } from './lib/staffApi';
 import { fetchBranchStats, fetchActivityFeed, fetchAggregatedBranchStats, DEFAULT_BRANCH_STATS, DEFAULT_AGGREGATED_BRANCH_STATS, type BranchStats, type AggregatedBranchStats } from './lib/branchOverviewApi';
 import { fetchBranches, insertBranch, updateBranch, deleteBranch } from './lib/branchesApi';
@@ -191,6 +191,36 @@ export default function App() {
       const notification = createAssignmentNotification(student.name, student.country, student.purpose, counselorName);
       setNotifications((prev) => [notification, ...prev]);
       insertNotification(notification).catch((err) => console.error('Failed to insert notification in Supabase', err));
+
+      const newCounselorStudent: CounselorStudent = {
+        id: `cs${Date.now()}`,
+        name: student.name,
+        phone: student.phone,
+        email: student.email,
+        country: student.country,
+        purpose: student.purpose,
+        submittedAt: student.submittedAt,
+        assignedDate: new Date().toISOString().slice(0, 10),
+        assignedCounselor: counselorName,
+        consultationStatus: 'Awaiting Consultation',
+        consultationNotes: '',
+        completedDate: null,
+        outcome: 'Pending',
+      };
+      setCounselorStudents((prev) => [newCounselorStudent, ...prev]);
+      insertCounselorStudent(newCounselorStudent).catch((err) =>
+        console.error('Failed to insert counselor_students in Supabase', err)
+      );
+
+      const matchedCounselor = counselors.find((c) => c.name === counselorName);
+      if (matchedCounselor) {
+        setCounselors((prev) =>
+          prev.map((c) => (c.id === matchedCounselor.id ? { ...c, activeAssignments: c.activeAssignments + 1 } : c))
+        );
+        updateCounselor(matchedCounselor.id, { activeAssignments: matchedCounselor.activeAssignments + 1 }).catch((err) =>
+          console.error('Failed to update counselor in Supabase', err)
+        );
+      }
     }
   };
 
@@ -207,6 +237,26 @@ export default function App() {
         const notification = createConsultationReadyNotification(student.name, user?.branch ?? '');
         setNotifications((prev) => [notification, ...prev]);
         insertNotification(notification).catch((err) => console.error('Failed to insert notification in Supabase', err));
+
+        const now = new Date();
+        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec'];
+        const historyDate = `${monthNames[now.getMonth()]} ${now.getDate()}`;
+        const newApplication: ApplicationRecord = {
+          id: `a${Date.now()}`,
+          name: student.name,
+          phone: student.phone,
+          email: student.email,
+          country: student.country,
+          purpose: student.purpose,
+          counselor: student.assignedCounselor,
+          consultationDate: student.completedDate ?? now.toISOString().slice(0, 10),
+          consultationNotes: student.consultationNotes,
+          status: 'Preparation',
+          statusHistory: [{ status: 'Preparation', date: historyDate }],
+          branch: user?.branch ?? '',
+        };
+        setApplications((prev) => [newApplication, ...prev]);
+        insertApplication(newApplication).catch((err) => console.error('Failed to insert application in Supabase', err));
       }
     }
   };
@@ -230,7 +280,7 @@ export default function App() {
     );
   };
 
-  const handleAddStaff = (member: StaffMember) => {
+  const handleAddStaff = (member: StaffMember, counselorCountry?: string) => {
     setStaff((prev) => [...prev, member]);
     insertStaff(member).catch((err) => console.error('Failed to insert staff in Supabase', err));
     if (member.role === 'Branch Manager') {
@@ -243,6 +293,17 @@ export default function App() {
           console.error('Failed to update branch manager in Supabase', err)
         );
       }
+    }
+    if (member.role === 'Counselor') {
+      const newCounselor: Counselor = {
+        id: `c${Date.now()}`,
+        name: member.name,
+        country: counselorCountry ?? '',
+        activeAssignments: 0,
+        availability: 'Available',
+      };
+      setCounselors((prev) => [...prev, newCounselor]);
+      insertCounselor(newCounselor).catch((err) => console.error('Failed to insert counselor in Supabase', err));
     }
   };
 
@@ -263,6 +324,15 @@ export default function App() {
       if (targetBranch) {
         updateBranch(targetBranch.id, { manager: null }).catch((err) =>
           console.error('Failed to update branch manager in Supabase', err)
+        );
+      }
+    }
+    if (target?.role === 'Counselor') {
+      const targetCounselor = counselors.find((c) => c.name === target.name);
+      setCounselors((prev) => prev.filter((c) => c.name !== target.name));
+      if (targetCounselor) {
+        deleteCounselor(targetCounselor.id).catch((err) =>
+          console.error('Failed to delete counselor in Supabase', err)
         );
       }
     }
@@ -324,6 +394,7 @@ export default function App() {
         return (
           <SuperAdminOverview
             branches={branches}
+            staff={staff}
             students={students}
             applications={applications}
             stats={companyStats}
@@ -364,6 +435,9 @@ export default function App() {
       return (
         <AllBranches
           branches={branches}
+          staff={staff}
+          students={students}
+          applications={applications}
           onAddBranch={handleAddBranch}
           onDeleteBranch={handleDeleteBranch}
         />

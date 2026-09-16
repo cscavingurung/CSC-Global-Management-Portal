@@ -31,8 +31,10 @@ create policy "Allow anon read" on counselor_students for select using (true);
 create policy "Allow anon insert" on counselor_students for insert with check (true);
 create policy "Allow anon update" on counselor_students for update using (true);
 
--- Seed data matching the app's previous mock data (MOCK_COUNSELOR_STUDENTS in
--- src/mockData.ts), so the Counselor role has something to show once wired up.
+-- Seed data (optional) — commented out since real rows are created automatically when a
+-- Receptionist assigns a student to a counselor (see handleAssign in src/App.tsx).
+-- Uncomment (remove the /* and */) if you ever want sample rows to test against.
+/*
 insert into counselor_students (id, name, phone, email, country, purpose, submitted_at, assigned_date, assigned_counselor, consultation_status, consultation_notes, completed_date, outcome) values
   ('cs1', 'Arjun Mehta', '+61 412 345 678', 'arjun.mehta@gmail.com', 'Australia', 'Study', '2026-09-14 09:15 AM', '2026-09-14', 'David Chen', 'Awaiting Consultation', '', null, 'Pending'),
   ('cs2', 'Mohammed Ali', '+61 445 123 456', 'm.ali@yahoo.com', 'United Kingdom', 'Work', '2026-09-13 03:20 PM', '2026-09-13', 'David Chen', 'In Progress', 'Client interested in skilled migration pathway. Needs IELTS assessment. Discussed employer sponsorship options.', null, 'Pending'),
@@ -41,6 +43,7 @@ insert into counselor_students (id, name, phone, email, country, purpose, submit
   ('cs5', 'Anna Lee', '+61 415 555 999', 'anna.lee@gmail.com', 'Australia', 'Study', '2026-09-11 09:00 AM', '2026-09-11', 'David Chen', 'Awaiting Consultation', '', null, 'Pending'),
   ('cs6', 'Sara Khan', '+61 478 456 789', 'sara.khan@gmail.com', 'USA', 'Tourist', '2026-09-13 01:10 PM', '2026-09-13', 'David Chen', 'Consultation Complete', 'Client applying for US B1/B2 tourist visa. Travel planned for December. Documents collected: passport, bank statements, employment letter.', '2026-09-14', 'Not Proceeding')
 on conflict (id) do nothing;
+*/
 
 -- Enable realtime broadcasting (INSERT/UPDATE/DELETE). Safe to re-run — the exception
 -- handler skips it if the table is already in the publication.

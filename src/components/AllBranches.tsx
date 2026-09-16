@@ -3,15 +3,19 @@ import {
   Search, X, Building2, Plus, MapPin, Users,
   GraduationCap, FileText, CheckCircle, CheckCircle as CheckIcon, Trash2,
 } from 'lucide-react';
-import { Branch } from '../types';
+import { Branch, StaffMember, IntakeStudent, ApplicationRecord } from '../types';
+import { computeBranchLiveStats, type BranchLiveStats } from '../branchLiveStats';
 
 interface AllBranchesProps {
   branches: Branch[];
+  staff: StaffMember[];
+  students: IntakeStudent[];
+  applications: ApplicationRecord[];
   onAddBranch: (branch: Branch) => void;
   onDeleteBranch: (id: string) => void;
 }
 
-export default function AllBranches({ branches, onAddBranch, onDeleteBranch }: AllBranchesProps) {
+export default function AllBranches({ branches, staff, students, applications, onAddBranch, onDeleteBranch }: AllBranchesProps) {
   const [search, setSearch] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
   const [selectedBranch, setSelectedBranch] = useState<Branch | null>(null);
@@ -19,6 +23,12 @@ export default function AllBranches({ branches, onAddBranch, onDeleteBranch }: A
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [newBranch, setNewBranch] = useState({ name: '', location: '' });
+
+  const statsByBranch = useMemo(() => {
+    const map = new Map<string, BranchLiveStats>();
+    branches.forEach((b) => map.set(b.name, computeBranchLiveStats(b.name, staff, students, applications)));
+    return map;
+  }, [branches, staff, students, applications]);
 
   const filtered = useMemo(() => {
     return branches.filter((b) =>
@@ -34,11 +44,6 @@ export default function AllBranches({ branches, onAddBranch, onDeleteBranch }: A
       name: newBranch.name,
       location: newBranch.location,
       manager: null,
-      staffCount: 0,
-      activeStudents: 0,
-      applicationsInProgress: 0,
-      visasGranted: 0,
-      visasRefused: 0,
     };
     onAddBranch(branch);
     setToastMessage(`Branch '${branch.name}' created`);
@@ -92,43 +97,46 @@ export default function AllBranches({ branches, onAddBranch, onDeleteBranch }: A
 
       {/* Branch cards grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filtered.map((b) => (
-          <button
-            key={b.id}
-            onClick={() => setSelectedBranch(b)}
-            className="bg-white rounded-xl border border-grey-border p-5 text-left hover:shadow-md transition-shadow"
-          >
-            <div className="flex items-start justify-between mb-4">
-              <div className="w-11 h-11 rounded-lg bg-navy/5 flex items-center justify-center">
-                <Building2 className="text-navy" size={22} />
+        {filtered.map((b) => {
+          const stats = statsByBranch.get(b.name);
+          return (
+            <button
+              key={b.id}
+              onClick={() => setSelectedBranch(b)}
+              className="bg-white rounded-xl border border-grey-border p-5 text-left hover:shadow-md transition-shadow"
+            >
+              <div className="flex items-start justify-between mb-4">
+                <div className="w-11 h-11 rounded-lg bg-navy/5 flex items-center justify-center">
+                  <Building2 className="text-navy" size={22} />
+                </div>
+                <span className="inline-flex items-center gap-1 text-xs text-gray-400">
+                  <MapPin size={12} />
+                  {b.location}
+                </span>
               </div>
-              <span className="inline-flex items-center gap-1 text-xs text-gray-400">
-                <MapPin size={12} />
-                {b.location}
-              </span>
-            </div>
-            <h3 className="text-base font-semibold text-navy mb-1">{b.name}</h3>
-            <p className="text-xs text-gray-400 mb-4">Manager: {b.manager || 'Unassigned'}</p>
-            <div className="grid grid-cols-2 gap-3 pt-3 border-t border-grey-border">
-              <div>
-                <p className="text-lg font-bold text-navy">{b.staffCount}</p>
-                <p className="text-xs text-gray-400">Staff</p>
+              <h3 className="text-base font-semibold text-navy mb-1">{b.name}</h3>
+              <p className="text-xs text-gray-400 mb-4">Manager: {b.manager || 'Unassigned'}</p>
+              <div className="grid grid-cols-2 gap-3 pt-3 border-t border-grey-border">
+                <div>
+                  <p className="text-lg font-bold text-navy">{stats?.staffCount ?? 0}</p>
+                  <p className="text-xs text-gray-400">Staff</p>
+                </div>
+                <div>
+                  <p className="text-lg font-bold text-navy">{stats?.activeStudents ?? 0}</p>
+                  <p className="text-xs text-gray-400">Students</p>
+                </div>
+                <div>
+                  <p className="text-lg font-bold text-navy">{stats?.applicationsInProgress ?? 0}</p>
+                  <p className="text-xs text-gray-400">In Progress</p>
+                </div>
+                <div>
+                  <p className="text-lg font-bold text-green-600">{stats?.visasGranted ?? 0}</p>
+                  <p className="text-xs text-gray-400">Granted</p>
+                </div>
               </div>
-              <div>
-                <p className="text-lg font-bold text-navy">{b.activeStudents}</p>
-                <p className="text-xs text-gray-400">Students</p>
-              </div>
-              <div>
-                <p className="text-lg font-bold text-navy">{b.applicationsInProgress}</p>
-                <p className="text-xs text-gray-400">In Progress</p>
-              </div>
-              <div>
-                <p className="text-lg font-bold text-green-600">{b.visasGranted}</p>
-                <p className="text-xs text-gray-400">Granted</p>
-              </div>
-            </div>
-          </button>
-        ))}
+            </button>
+          );
+        })}
       </div>
       {filtered.length === 0 && (
         <div className="py-12 text-center text-sm text-gray-400">No branches found.</div>
@@ -215,10 +223,10 @@ export default function AllBranches({ branches, onAddBranch, onDeleteBranch }: A
 
               <div className="grid grid-cols-2 gap-3">
                 {[
-                  { icon: Users, label: 'Staff', value: selectedBranch.staffCount },
-                  { icon: GraduationCap, label: 'Active Students', value: selectedBranch.activeStudents },
-                  { icon: FileText, label: 'Apps In Progress', value: selectedBranch.applicationsInProgress },
-                  { icon: CheckIcon, label: 'Visas Granted', value: selectedBranch.visasGranted, green: true },
+                  { icon: Users, label: 'Staff', value: statsByBranch.get(selectedBranch.name)?.staffCount ?? 0 },
+                  { icon: GraduationCap, label: 'Active Students', value: statsByBranch.get(selectedBranch.name)?.activeStudents ?? 0 },
+                  { icon: FileText, label: 'Apps In Progress', value: statsByBranch.get(selectedBranch.name)?.applicationsInProgress ?? 0 },
+                  { icon: CheckIcon, label: 'Visas Granted', value: statsByBranch.get(selectedBranch.name)?.visasGranted ?? 0, green: true },
                 ].map((stat) => {
                   const Icon = stat.icon;
                   return (

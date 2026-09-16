@@ -32,7 +32,11 @@ create policy "Allow anon read" on applications for select using (true);
 create policy "Allow anon insert" on applications for insert with check (true);
 create policy "Allow anon update" on applications for update using (true);
 
--- Seed data matching the app's previous mock data (MOCK_APPLICATIONS in src/mockData.ts).
+-- Seed data (optional) — commented out since real applications are created automatically
+-- when a Counselor marks a consultation's outcome as "Proceeding" (see
+-- handleUpdateCounselorStudent in src/App.tsx). Uncomment (remove the /* and */) if you
+-- ever want sample rows to test against.
+/*
 insert into applications (id, name, phone, email, country, purpose, counselor, consultation_date, consultation_notes, status, status_history, branch) values
   ('a1', 'Emily Park', '+61 401 222 333', 'emily.park@gmail.com', 'New Zealand', 'Work', 'David Chen', '2026-09-13', 'Client has valid job offer from Sydney employer. Recommended 482 visa (temporary skill shortage). All documents verified and ready for lodgement.', 'Lodgement', '[{"status":"Preparation","date":"Sept 13"},{"status":"Lodgement","date":"Sept 14"}]'::jsonb, 'Sydney CBD'),
   ('a2', 'Sara Khan', '+61 478 456 789', 'sara.khan@gmail.com', 'USA', 'Tourist', 'David Chen', '2026-09-14', 'Client applying for US B1/B2 tourist visa. Travel planned for December. Documents collected: passport, bank statements, employment letter.', 'Preparation', '[{"status":"Preparation","date":"Sept 14"}]'::jsonb, 'Sydney CBD'),
@@ -45,6 +49,7 @@ insert into applications (id, name, phone, email, country, purpose, counselor, c
   ('a9', 'Priya Karki', '+61 422 111 222', 'priya.karki@gmail.com', 'Canada', 'PR', 'Bikash Rai', '2026-09-03', 'Express Entry profile under preparation. Awaiting updated language test results before proceeding.', 'Preparation', '[{"status":"Preparation","date":"Sept 4"}]'::jsonb, 'Kamaladi'),
   ('a10', 'Suman Rai', '+61 433 222 111', 'suman.rai@gmail.com', 'USA', 'Tourist', 'Milan Gurung', '2026-09-05', 'Tourist visa application. Awaiting bank statements and travel itinerary from client.', 'Preparation', '[{"status":"Preparation","date":"Sept 6"}]'::jsonb, 'Putalisadak')
 on conflict (id) do nothing;
+*/
 
 -- Enable realtime broadcasting (INSERT/UPDATE/DELETE). Safe to re-run — the exception
 -- handler skips it if the table is already in the publication.
