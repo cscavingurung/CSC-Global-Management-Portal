@@ -23,9 +23,10 @@ import ReportsPage from './components/ReportsPage';
 import { MockUser, IntakeStudent, CounselorStudent, ApplicationRecord, StaffMember, Branch, CommissionRecord, Partner, AppNotification, Counselor, ActivityEntry } from './types';
 import {
   NAV_CONFIG,
-  MOCK_COMMISSIONS, MOCK_PARTNERS, MOCK_NOTIFICATIONS,
+  MOCK_COMMISSIONS, MOCK_PARTNERS,
 } from './mockData';
 import { createIntakeNotification, createAssignmentNotification, createConsultationReadyNotification } from './notifications';
+import { fetchNotifications, insertNotification, markNotificationRead, markNotificationsRead } from './lib/notificationsApi';
 import { fetchCounselorStudents, updateCounselorStudent } from './lib/counselorStudentsApi';
 import { fetchStudents, insertStudent, updateStudent } from './lib/studentsApi';
 import { fetchCounselors } from './lib/counselorsApi';
@@ -48,7 +49,7 @@ export default function App() {
   const [branches, setBranches] = useState<Branch[]>([]);
   const [commissions, setCommissions] = useState<CommissionRecord[]>(MOCK_COMMISSIONS);
   const [partners, setPartners] = useState<Partner[]>(MOCK_PARTNERS);
-  const [notifications, setNotifications] = useState<AppNotification[]>(MOCK_NOTIFICATIONS);
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [branchStats, setBranchStats] = useState<BranchStats>(DEFAULT_BRANCH_STATS);
   const [activityFeed, setActivityFeed] = useState<ActivityEntry[]>([]);
   const [companyStats, setCompanyStats] = useState<AggregatedBranchStats>(DEFAULT_AGGREGATED_BRANCH_STATS);
@@ -109,6 +110,15 @@ export default function App() {
 
   useEffect(() => {
     const load = () =>
+      fetchNotifications()
+        .then(setNotifications)
+        .catch((err) => console.error('Failed to load notifications from Supabase', err));
+    load();
+    return subscribeToTable('notifications', load);
+  }, []);
+
+  useEffect(() => {
+    const load = () =>
       fetchActivityFeed()
         .then(setActivityFeed)
         .catch((err) => console.error('Failed to load activity_feed from Supabase', err));
@@ -160,10 +170,9 @@ export default function App() {
     };
     setStudents((prev) => [newStudent, ...prev]);
     insertStudent(newStudent).catch((err) => console.error('Failed to insert student in Supabase', err));
-    setNotifications((prev) => [
-      createIntakeNotification(newStudent.name, newStudent.country, newStudent.purpose, newStudent.branch),
-      ...prev,
-    ]);
+    const notification = createIntakeNotification(newStudent.name, newStudent.country, newStudent.purpose, newStudent.branch);
+    setNotifications((prev) => [notification, ...prev]);
+    insertNotification(notification).catch((err) => console.error('Failed to insert notification in Supabase', err));
   };
 
   const handleAssign = (studentId: string, counselorName: string) => {
@@ -179,10 +188,9 @@ export default function App() {
     );
     const student = students.find((s) => s.id === studentId);
     if (student) {
-      setNotifications((prev) => [
-        createAssignmentNotification(student.name, student.country, student.purpose, counselorName),
-        ...prev,
-      ]);
+      const notification = createAssignmentNotification(student.name, student.country, student.purpose, counselorName);
+      setNotifications((prev) => [notification, ...prev]);
+      insertNotification(notification).catch((err) => console.error('Failed to insert notification in Supabase', err));
     }
   };
 
@@ -196,20 +204,21 @@ export default function App() {
     if (updates.outcome === 'Proceeding') {
       const student = counselorStudents.find((s) => s.id === id);
       if (student) {
-        setNotifications((prev) => [
-          createConsultationReadyNotification(student.name, user?.branch ?? ''),
-          ...prev,
-        ]);
+        const notification = createConsultationReadyNotification(student.name, user?.branch ?? '');
+        setNotifications((prev) => [notification, ...prev]);
+        insertNotification(notification).catch((err) => console.error('Failed to insert notification in Supabase', err));
       }
     }
   };
 
   const handleMarkNotificationRead = (id: string) => {
     setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
+    markNotificationRead(id).catch((err) => console.error('Failed to mark notification read in Supabase', err));
   };
 
   const handleMarkAllNotificationsRead = (ids: string[]) => {
     setNotifications((prev) => prev.map((n) => (ids.includes(n.id) ? { ...n, read: true } : n)));
+    markNotificationsRead(ids).catch((err) => console.error('Failed to mark notifications read in Supabase', err));
   };
 
   const handleUpdateApplication = (id: string, updates: Partial<ApplicationRecord>) => {
