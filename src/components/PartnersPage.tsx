@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Search, X, Plus, Landmark, Trash2, Edit, Percent, CheckCircle, BookOpen } from 'lucide-react';
+import { Search, X, Plus, Landmark, Trash2, Edit, Percent, CheckCircle, BookOpen, ChevronDown } from 'lucide-react';
 import { Partner, PartnerType, PartnerCourse } from '../types';
 
 interface PartnersPageProps {
@@ -252,18 +252,17 @@ export default function PartnersPage({ partners, onAddPartner, onUpdatePartner, 
             </button>
           )}
         </div>
-        <div className="flex gap-1 bg-white border border-grey-border rounded-lg p-1">
-          {(['all', 'University', 'College'] as const).map((opt) => (
-            <button
-              key={opt}
-              onClick={() => setTypeFilter(opt)}
-              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                typeFilter === opt ? 'bg-navy text-white' : 'text-gray-500 hover:text-navy hover:bg-grey-bg'
-              }`}
-            >
-              {opt === 'all' ? 'All' : opt}
-            </button>
-          ))}
+        <div className="relative">
+          <select
+            value={typeFilter}
+            onChange={(e) => setTypeFilter(e.target.value as 'all' | PartnerType)}
+            className="w-full sm:w-auto appearance-none bg-white border border-grey-border rounded-lg pl-3 pr-9 py-2.5 text-sm font-medium text-navy focus:outline-none focus:border-navy-light focus:ring-1 focus:ring-navy-light transition-colors"
+          >
+            <option value="all">All Types</option>
+            <option value="University">University</option>
+            <option value="College">College</option>
+          </select>
+          <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
         </div>
         <button
           onClick={openAddForm}

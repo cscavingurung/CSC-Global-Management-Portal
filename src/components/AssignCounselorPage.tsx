@@ -1,15 +1,16 @@
 import { useState, useMemo } from 'react';
 import { UserCheck, Users } from 'lucide-react';
-import { IntakeStudent } from '../types';
-import { MOCK_COUNSELORS } from '../mockData';
+import { Counselor, IntakeStudent } from '../types';
 import AssignCounselorModal from './AssignCounselorModal';
+import { AVAILABILITY_STYLES, sortByAvailability } from '../counselorStatus';
 
 interface AssignCounselorPageProps {
   students: IntakeStudent[];
+  counselors: Counselor[];
   onAssign: (studentId: string, counselorName: string) => void;
 }
 
-export default function AssignCounselorPage({ students, onAssign }: AssignCounselorPageProps) {
+export default function AssignCounselorPage({ students, counselors, onAssign }: AssignCounselorPageProps) {
   const [assignStudent, setAssignStudent] = useState<IntakeStudent | null>(null);
 
   const unassigned = useMemo(
@@ -26,25 +27,20 @@ export default function AssignCounselorPage({ students, onAssign }: AssignCounse
           <h3 className="text-sm font-semibold text-navy">Counselors</h3>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {MOCK_COUNSELORS.map((c) => {
-            const isFree = c.activeAssignments < c.capacity;
-            return (
-              <div key={c.id} className="bg-white rounded-xl border border-grey-border p-4 flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-navy truncate">{c.name}</p>
-                  <p className="text-xs text-gray-500 truncate">{c.country}</p>
-                  <p className="text-xs text-gray-400 mt-1">{c.activeAssignments}/{c.capacity} active students</p>
-                </div>
-                <span
-                  className={`text-xs font-medium px-2.5 py-1 rounded-full flex-shrink-0 ${
-                    isFree ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                  }`}
-                >
-                  {isFree ? 'Free' : 'Busy'}
-                </span>
+          {sortByAvailability(counselors).map((c) => (
+            <div key={c.id} className="bg-white rounded-xl border border-grey-border p-4 flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-navy truncate">{c.name}</p>
+                <p className="text-xs text-gray-500 truncate">{c.country}</p>
+                <p className="text-xs text-gray-400 mt-1">{c.activeAssignments} assigned students</p>
               </div>
-            );
-          })}
+              <span
+                className={`text-xs font-medium px-2.5 py-1 rounded-full flex-shrink-0 ${AVAILABILITY_STYLES[c.availability]}`}
+              >
+                {c.availability}
+              </span>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -133,7 +129,7 @@ export default function AssignCounselorPage({ students, onAssign }: AssignCounse
       {assignStudent && (
         <AssignCounselorModal
           student={assignStudent}
-          counselors={MOCK_COUNSELORS}
+          counselors={counselors}
           onClose={() => setAssignStudent(null)}
           onConfirm={(counselorName) => {
             onAssign(assignStudent.id, counselorName);

@@ -1,18 +1,22 @@
+import { useEffect, useMemo, useState } from 'react';
 import {
-  GraduationCap, CalendarDays, FileText, CheckCircle, XCircle,
-  TrendingUp, TrendingDown, UserCheck, RefreshCw, UserPlus, ClipboardList,
-  type LucideIcon,
+  GraduationCap, CalendarDays, FileText, CheckCircle,
+  TrendingUp, UserCheck, RefreshCw, UserPlus, ClipboardList,
+  UserX, FileClock, UserMinus, ChevronLeft, ChevronRight, type LucideIcon,
 } from 'lucide-react';
-import { BRANCH_MANAGER_STATS, MOCK_ACTIVITY_FEED } from '../mockData';
-import { ActivityEntry } from '../types';
+import { ActivityEntry, ApplicationRecord, Counselor, IntakeStudent } from '../types';
+import { parseSubmittedAt } from '../dateTime';
+import { daysInCurrentStatus, latestStatusHistoryDate } from '../applicationHistory';
+import type { BranchStats } from '../lib/branchOverviewApi';
 
-const ICON_MAP: Record<string, LucideIcon> = {
-  GraduationCap,
-  CalendarDays,
-  FileText,
-  CheckCircle,
-  XCircle,
-};
+interface BranchManagerOverviewProps {
+  branch: string;
+  students: IntakeStudent[];
+  applications: ApplicationRecord[];
+  counselors: Counselor[];
+  stats: BranchStats;
+  activityFeed: ActivityEntry[];
+}
 
 const ACTIVITY_ICONS: Record<ActivityEntry['type'], LucideIcon> = {
   assignment: UserCheck,
@@ -28,29 +32,155 @@ const ACTIVITY_COLORS: Record<ActivityEntry['type'], string> = {
   consultation: 'bg-orange-50 text-orange-600',
 };
 
-export default function BranchManagerOverview() {
+const ACTIVITY_FILTERS: { value: ActivityFilter; label: string }[] = [
+  { value: 'all', label: 'All' },
+  { value: 'intake', label: 'Intakes' },
+  { value: 'assignment', label: 'Assignments' },
+  { value: 'status', label: 'Status Changes' },
+];
+
+const ACTIVITY_PAGE_SIZE = 10;
+const STALE_APPLICATION_DAYS = 7;
+const STALE_STUDENT_HOURS = 24;
+
+type ActivityFilter = 'all' | ActivityEntry['type'];
+
+// Mock timestamps are relative strings ("15 min ago", "3 hours ago", "1 day ago") with no
+// real date behind them — anything not phrased in days is treated as having happened today.
+function isToday(timestamp: string): boolean {
+  return !/\bdays?\b/i.test(timestamp);
+}
+
+interface NeedsAttentionRow {
+  id: string;
+  icon: LucideIcon;
+  iconColor: string;
+  name: string;
+  typeLabel: string;
+  timeText: string;
+  severity: number;
+}
+
+export default function BranchManagerOverview({ branch, students, applications, counselors, stats, activityFeed }: BranchManagerOverviewProps) {
+  const [activityFilter, setActivityFilter] = useState<ActivityFilter>('all');
+  const [activityPage, setActivityPage] = useState(1);
+
+  const statCards: { key: string; icon: LucideIcon; value: number; label: string; trend: string; trendUp: boolean }[] = [
+    { key: 'total-students', icon: GraduationCap, value: stats.totalStudents.value, label: 'Total Students This Month', trend: stats.totalStudents.trend, trendUp: stats.totalStudents.trendUp },
+    { key: 'active-consultations', icon: CalendarDays, value: stats.activeConsultations.value, label: 'Active Consultations', trend: stats.activeConsultations.trend, trendUp: stats.activeConsultations.trendUp },
+    { key: 'applications-in-progress', icon: FileText, value: stats.applicationsInProgress.value, label: 'Applications In Progress', trend: stats.applicationsInProgress.trend, trendUp: stats.applicationsInProgress.trendUp },
+  ];
+
+  const branchApplications = useMemo(
+    () => applications.filter((a) => a.branch === branch),
+    [applications, branch]
+  );
+
+  // Treat the latest timestamp across students and this branch's applications as "now" —
+  // the mock dataset has no live clock, so the latest timestamp anchors day/hour counts.
+  const now = useMemo(() => {
+    const studentDates = students
+      .map((s) => parseSubmittedAt(s.submittedAt))
+      .filter((d): d is Date => d !== null);
+    const appNow = latestStatusHistoryDate(branchApplications);
+    const all = [...studentDates, appNow];
+    return all.reduce((latest, d) => (d > latest ? d : latest), all[0]);
+  }, [students, branchApplications]);
+
+  const needsAttention = useMemo<NeedsAttentionRow[]>(() => {
+    const rows: NeedsAttentionRow[] = [];
+
+    students
+      .filter((s) => s.status === 'New')
+      .forEach((s) => {
+        const submitted = parseSubmittedAt(s.submittedAt);
+        if (!submitted) return;
+        const hours = (now.getTime() - submitted.getTime()) / (60 * 60 * 1000);
+        if (hours <= STALE_STUDENT_HOURS) return;
+        const days = Math.round(hours / 24);
+        rows.push({
+          id: `student-${s.id}`,
+          icon: UserX,
+          iconColor: 'bg-orange-50 text-orange-600',
+          name: s.name,
+          typeLabel: 'Student — unassigned',
+          timeText: `unassigned ${days} day${days === 1 ? '' : 's'}`,
+          severity: hours / 24,
+        });
+      });
+
+    branchApplications
+      .filter((a) => a.status === 'Preparation' || a.status === 'Lodgement')
+      .forEach((a) => {
+        const days = daysInCurrentStatus(a, now);
+        if (days < STALE_APPLICATION_DAYS) return;
+        rows.push({
+          id: `application-${a.id}`,
+          icon: FileClock,
+          iconColor: 'bg-navy/5 text-navy',
+          name: a.name,
+          typeLabel: `Application — ${a.status}`,
+          timeText: `${days} day${days === 1 ? '' : 's'} in ${a.status}`,
+          severity: days,
+        });
+      });
+
+    counselors
+      .filter((c) => c.availability === 'Away')
+      .forEach((c) => {
+        rows.push({
+          id: `counselor-${c.id}`,
+          icon: UserMinus,
+          iconColor: 'bg-gray-100 text-gray-500',
+          name: c.name,
+          typeLabel: 'Counselor — no activity',
+          timeText: 'no activity today',
+          severity: 0,
+        });
+      });
+
+    return rows.sort((a, b) => b.severity - a.severity);
+  }, [students, branchApplications, counselors, now]);
+
+  const todaysActivity = useMemo(() => {
+    return activityFeed.filter(
+      (e) => isToday(e.timestamp) && (activityFilter === 'all' || e.type === activityFilter)
+    );
+  }, [activityFeed, activityFilter]);
+
+  const activityTotalPages = Math.max(1, Math.ceil(todaysActivity.length / ACTIVITY_PAGE_SIZE));
+
+  useEffect(() => {
+    setActivityPage(1);
+  }, [activityFilter]);
+
+  const pagedActivity = useMemo(() => {
+    const start = (activityPage - 1) * ACTIVITY_PAGE_SIZE;
+    return todaysActivity.slice(start, start + ACTIVITY_PAGE_SIZE);
+  }, [todaysActivity, activityPage]);
+
   return (
     <div className="space-y-6">
       {/* Welcome banner */}
       <div className="bg-navy rounded-2xl p-6 lg:p-8 text-white">
         <h2 className="text-xl lg:text-2xl font-semibold">Branch Overview</h2>
         <p className="text-white/60 text-sm mt-1">
-          Sydney CBD — here's what's happening across your branch today.
+          {branch} — here's what's happening across your branch today.
         </p>
       </div>
 
       {/* Stat cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-        {BRANCH_MANAGER_STATS.map((stat) => {
-          const Icon = ICON_MAP[stat.icon];
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+        {statCards.map((stat) => {
+          const Icon = stat.icon;
           return (
-            <div key={stat.label} className="stat-card">
+            <div key={stat.key} className="stat-card">
               <div className="flex items-start justify-between mb-4">
                 <div className="w-11 h-11 rounded-lg bg-navy/5 flex items-center justify-center">
                   <Icon className="text-navy" size={22} />
                 </div>
                 <div className={`flex items-center gap-1 text-xs font-medium ${stat.trendUp ? 'text-green-600' : 'text-orange-600'}`}>
-                  {stat.trendUp ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
+                  <TrendingUp size={14} />
                 </div>
               </div>
               <p className="text-3xl font-bold text-navy">{stat.value}</p>
@@ -61,33 +191,126 @@ export default function BranchManagerOverview() {
             </div>
           );
         })}
+
+        {/* Decided This Month — merged Granted + Refused */}
+        <div className="stat-card">
+          <div className="flex items-start justify-between mb-4">
+            <div className="w-11 h-11 rounded-lg bg-navy/5 flex items-center justify-center">
+              <CheckCircle className="text-navy" size={22} />
+            </div>
+          </div>
+          <p className="text-3xl font-bold text-navy">
+            {stats.decidedGranted + stats.decidedRefused}
+          </p>
+          <p className="text-sm text-gray-500 mt-1">Decided This Month</p>
+          <p className="text-xs mt-2 text-gray-400">
+            {stats.decidedGranted} granted · {stats.decidedRefused} refused
+          </p>
+        </div>
       </div>
 
-      {/* Recent activity feed */}
-      <div className="stat-card">
-        <h3 className="text-base font-semibold text-navy mb-4">Recent Activity</h3>
-        <div className="space-y-1">
-          {MOCK_ACTIVITY_FEED.map((entry, idx) => {
-            const Icon = ACTIVITY_ICONS[entry.type];
-            const colorClass = ACTIVITY_COLORS[entry.type];
-            return (
-              <div
-                key={entry.id}
-                className="flex items-center gap-3 py-3 border-b border-grey-border last:border-0"
-              >
-                <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${colorClass}`}>
-                  <Icon size={17} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-navy">{entry.message}</p>
-                </div>
-                <span className="text-xs text-gray-400 flex-shrink-0">{entry.timestamp}</span>
-                {idx === 0 && (
-                  <span className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0" />
-                )}
+      {/* Needs attention + recent activity */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="stat-card">
+          <h3 className="text-base font-semibold text-navy mb-4">Needs Attention</h3>
+          {needsAttention.length > 0 ? (
+            <div className="space-y-0">
+              {needsAttention.map((row) => {
+                const Icon = row.icon;
+                return (
+                  <div key={row.id} className="flex items-center gap-3 py-2.5 border-b border-grey-border last:border-0">
+                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${row.iconColor}`}>
+                      <Icon size={16} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-navy truncate">{row.name}</p>
+                      <p className="text-xs text-gray-500 truncate">{row.typeLabel}</p>
+                    </div>
+                    <span className="text-xs text-amber-600 font-medium flex-shrink-0 ml-2 whitespace-nowrap">
+                      {row.timeText}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-sm text-gray-400 text-center py-6">Nothing needs attention — branch is running clear.</p>
+          )}
+        </div>
+
+        <div className="stat-card">
+          <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
+            <h3 className="text-base font-semibold text-navy">Today's Activity</h3>
+            <div className="flex items-center gap-1 flex-wrap">
+              {ACTIVITY_FILTERS.map((f) => (
+                <button
+                  key={f.value}
+                  onClick={() => setActivityFilter(f.value)}
+                  className={`text-xs font-medium px-2.5 py-1 rounded-full transition-colors ${
+                    activityFilter === f.value
+                      ? 'bg-navy text-white'
+                      : 'bg-grey-bg text-gray-500 hover:text-navy'
+                  }`}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          {todaysActivity.length > 0 ? (
+            <>
+              <div className="space-y-1">
+                {pagedActivity.map((entry, idx) => {
+                  const Icon = ACTIVITY_ICONS[entry.type];
+                  const colorClass = ACTIVITY_COLORS[entry.type];
+                  return (
+                    <div
+                      key={entry.id}
+                      className="flex items-center gap-3 py-3 border-b border-grey-border last:border-0"
+                    >
+                      <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${colorClass}`}>
+                        <Icon size={17} />
+                      </div>
+                      <div className="flex-1 min-w-0 flex items-center gap-2">
+                        <p className="text-sm text-navy truncate">{entry.message}</p>
+                        {activityPage === 1 && idx === 0 && (
+                          <span className="text-[10px] font-semibold uppercase tracking-wide text-green-700 bg-green-100 px-1.5 py-0.5 rounded flex-shrink-0">
+                            New
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-xs text-gray-400 flex-shrink-0">{entry.timestamp}</span>
+                    </div>
+                  );
+                })}
               </div>
-            );
-          })}
+              {activityTotalPages > 1 && (
+                <div className="flex items-center justify-center gap-3 mt-3 pt-3 border-t border-grey-border">
+                  <button
+                    onClick={() => setActivityPage((p) => Math.max(1, p - 1))}
+                    disabled={activityPage === 1}
+                    className="w-7 h-7 flex items-center justify-center rounded-md text-gray-400 hover:text-navy hover:bg-grey-bg disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-gray-400 transition-colors"
+                    aria-label="Previous page"
+                  >
+                    <ChevronLeft size={16} />
+                  </button>
+                  <span className="text-xs text-gray-500 font-medium">
+                    {activityPage} of {activityTotalPages}
+                  </span>
+                  <button
+                    onClick={() => setActivityPage((p) => Math.min(activityTotalPages, p + 1))}
+                    disabled={activityPage === activityTotalPages}
+                    className="w-7 h-7 flex items-center justify-center rounded-md text-gray-400 hover:text-navy hover:bg-grey-bg disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-gray-400 transition-colors"
+                    aria-label="Next page"
+                  >
+                    <ChevronRight size={16} />
+                  </button>
+                </div>
+              )}
+            </>
+          ) : (
+            <p className="text-sm text-gray-400 text-center py-6">No activity yet today.</p>
+          )}
         </div>
       </div>
     </div>

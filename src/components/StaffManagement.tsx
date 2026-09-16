@@ -1,9 +1,10 @@
-import { useState, useMemo } from 'react';
+import { useRef, useState, useMemo } from 'react';
 import {
   UserPlus, Trash2, Search, X, Mail, Briefcase, Circle,
-  ChevronDown,
+  ChevronDown, Lock, Eye, EyeOff,
 } from 'lucide-react';
 import { StaffMember, StaffRole, StaffStatus } from '../types';
+import { isValidEmail, PASSWORD_PATTERN } from '../validation';
 
 interface StaffManagementProps {
   staff: StaffMember[];
@@ -21,13 +22,16 @@ const ROLE_STYLES: Record<StaffRole, string> = {
   'Branch Manager': 'bg-purple-100 text-purple-700',
 };
 
+
 export default function StaffManagement({ staff, onAddStaff, onUpdateStaff, onRemoveStaff, branches, showBranchFilter }: StaffManagementProps) {
   const [search, setSearch] = useState('');
   const [branchFilter, setBranchFilter] = useState<string>('all');
   const [showAddForm, setShowAddForm] = useState(false);
   const [removeTarget, setRemoveTarget] = useState<StaffMember | null>(null);
   const [selectedStaffId, setSelectedStaffId] = useState<string | null>(null);
-  const [newStaff, setNewStaff] = useState({ name: '', email: '', role: 'Receptionist' as StaffRole, branch: (branches && branches[0]) || 'Sydney CBD' });
+  const [showPassword, setShowPassword] = useState(false);
+  const [newStaff, setNewStaff] = useState({ name: '', email: '', password: '', role: 'Receptionist' as StaffRole, branch: (branches && branches[0]) || 'Sydney CBD' });
+  const newStaffEmailRef = useRef<HTMLInputElement>(null);
 
   const selectedStaff = staff.find((s) => s.id === selectedStaffId) ?? null;
 
@@ -43,16 +47,25 @@ export default function StaffManagement({ staff, onAddStaff, onUpdateStaff, onRe
 
   const handleAddSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    // type="email" only rejects grossly malformed values (e.g. missing "@") — it does not
+    // enforce `pattern` — so the stricter email shape is checked here instead.
+    if (!isValidEmail(newStaff.email)) {
+      newStaffEmailRef.current?.setCustomValidity('Enter a valid email address, e.g. name@everestvisa.com');
+      newStaffEmailRef.current?.reportValidity();
+      return;
+    }
     const member: StaffMember = {
       id: `st${Date.now()}`,
       name: newStaff.name,
       email: newStaff.email,
+      password: newStaff.password,
       role: newStaff.role,
       status: 'Active',
       branch: newStaff.branch,
     };
     onAddStaff(member);
-    setNewStaff({ name: '', email: '', role: 'Receptionist', branch: (branches && branches[0]) || 'Sydney CBD' });
+    setNewStaff({ name: '', email: '', password: '', role: 'Receptionist', branch: (branches && branches[0]) || 'Sydney CBD' });
+    setShowPassword(false);
     setShowAddForm(false);
   };
 
@@ -241,15 +254,48 @@ export default function StaffManagement({ staff, onAddStaff, onUpdateStaff, onRe
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-navy mb-1.5">Email</label>
-                <input
-                  type="email"
-                  required
-                  value={newStaff.email}
-                  onChange={(e) => setNewStaff({ ...newStaff, email: e.target.value })}
-                  placeholder="name@everestvisa.com"
-                  className="w-full px-4 py-2.5 border border-grey-border rounded-lg text-sm focus:outline-none focus:border-navy-light focus:ring-1 focus:ring-navy-light transition-colors"
-                />
+                <label className="block text-sm font-medium text-navy mb-1.5">Email (Login ID)</label>
+                <div className="relative">
+                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input
+                    ref={newStaffEmailRef}
+                    type="email"
+                    required
+                    value={newStaff.email}
+                    onChange={(e) => {
+                      setNewStaff({ ...newStaff, email: e.target.value });
+                      e.target.setCustomValidity('');
+                    }}
+                    placeholder="name@everestvisa.com"
+                    className="w-full pl-10 pr-4 py-2.5 border border-grey-border rounded-lg text-sm focus:outline-none focus:border-navy-light focus:ring-1 focus:ring-navy-light transition-colors"
+                  />
+                </div>
+                <p className="text-xs text-gray-400 mt-1.5">This becomes the staff member's sign-in email.</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-navy mb-1.5">Password</label>
+                <div className="relative">
+                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    required
+                    pattern={PASSWORD_PATTERN}
+                    maxLength={15}
+                    title="More than 8 and fewer than 16 characters, including a letter and a number"
+                    value={newStaff.password}
+                    onChange={(e) => setNewStaff({ ...newStaff, password: e.target.value })}
+                    placeholder="Set a login password"
+                    className="w-full pl-10 pr-10 py-2.5 border border-grey-border rounded-lg text-sm focus:outline-none focus:border-navy-light focus:ring-1 focus:ring-navy-light transition-colors"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-navy transition-colors"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+                <p className="text-xs text-gray-400 mt-1.5">9–15 characters, with at least one letter and one number.</p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-navy mb-1.5">Role</label>

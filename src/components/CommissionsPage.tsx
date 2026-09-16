@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Search, X, Edit, DollarSign, CheckCircle } from 'lucide-react';
+import { Search, X, Edit, DollarSign, CheckCircle, ChevronDown } from 'lucide-react';
 import { CommissionRecord, CommissionStatus, Partner } from '../types';
 
 interface CommissionsPageProps {
@@ -105,18 +105,17 @@ export default function CommissionsPage({ commissions, partners, onUpdateCommiss
             </button>
           )}
         </div>
-        <div className="flex gap-1 bg-white border border-grey-border rounded-lg p-1">
-          {(['all', 'Pending', 'Paid'] as const).map((opt) => (
-            <button
-              key={opt}
-              onClick={() => setStatusFilter(opt)}
-              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                statusFilter === opt ? 'bg-navy text-white' : 'text-gray-500 hover:text-navy hover:bg-grey-bg'
-              }`}
-            >
-              {opt === 'all' ? 'All' : opt}
-            </button>
-          ))}
+        <div className="relative">
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as 'all' | CommissionStatus)}
+            className="w-full sm:w-auto appearance-none bg-white border border-grey-border rounded-lg pl-3 pr-9 py-2.5 text-sm font-medium text-navy focus:outline-none focus:border-navy-light focus:ring-1 focus:ring-navy-light transition-colors"
+          >
+            <option value="all">All Statuses</option>
+            <option value="Pending">Pending</option>
+            <option value="Paid">Paid</option>
+          </select>
+          <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
         </div>
       </div>
 

@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { X, User, Phone, Mail, Globe, Target, Calendar, Check, UserCheck } from 'lucide-react';
 import { IntakeStudent, Counselor } from '../types';
+import { AVAILABILITY_STYLES, sortByAvailability } from '../counselorStatus';
 
 interface AssignCounselorModalProps {
   student: IntakeStudent;
@@ -19,6 +20,17 @@ export default function AssignCounselorModal({
     student.assignedCounselor || ''
   );
   const [dropdownOpen, setDropdownOpen] = useState(false);
+
+  // Country-of-interest match is a fit signal, not a restriction — matching counselors are
+  // just sorted first and badged, never disabled or de-emphasized. Within each group,
+  // available counselors sort before in-session/away ones.
+  const { matching, others } = useMemo(() => {
+    const isMatch = (c: Counselor) => c.country === student.country;
+    return {
+      matching: sortByAvailability(counselors.filter(isMatch)),
+      others: sortByAvailability(counselors.filter((c) => !isMatch(c))),
+    };
+  }, [counselors, student.country]);
 
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
@@ -103,40 +115,35 @@ export default function AssignCounselorModal({
               {dropdownOpen && (
                 <>
                   <div className="fixed inset-0 z-10" onClick={() => setDropdownOpen(false)} />
-                  <div className="absolute z-20 mt-1 w-full bg-white border border-grey-border rounded-lg shadow-lg overflow-hidden max-h-60 overflow-y-auto">
-                    {counselors.map((c) => (
-                      <button
+                  <div className="absolute z-20 mt-1 w-full bg-white border border-grey-border rounded-lg shadow-lg overflow-hidden max-h-80 overflow-y-auto">
+                    {matching.map((c) => (
+                      <CounselorOption
                         key={c.id}
-                        type="button"
-                        onClick={() => {
+                        counselor={c}
+                        selected={c.name === selectedCounselor}
+                        isSpecialist
+                        onSelect={() => {
                           setSelectedCounselor(c.name);
                           setDropdownOpen(false);
                         }}
-                        className={`w-full flex items-center justify-between px-4 py-2.5 text-sm transition-colors text-left ${
-                          c.name === selectedCounselor
-                            ? 'bg-navy text-white'
-                            : 'text-navy hover:bg-grey-bg'
-                        }`}
-                      >
-                        <div className="min-w-0">
-                          <p className="font-medium truncate">{c.name}</p>
-                          <p className={`text-xs ${c.name === selectedCounselor ? 'text-white/60' : 'text-gray-400'}`}>
-                            {c.country} · {c.activeAssignments}/{c.capacity} active
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-2 flex-shrink-0 ml-2">
-                          <span
-                            className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${
-                              c.activeAssignments >= c.capacity
-                                ? c.name === selectedCounselor ? 'bg-white/20 text-white' : 'bg-red-100 text-red-700'
-                                : c.name === selectedCounselor ? 'bg-white/20 text-white' : 'bg-green-100 text-green-700'
-                            }`}
-                          >
-                            {c.activeAssignments >= c.capacity ? 'Busy' : 'Free'}
-                          </span>
-                          {c.name === selectedCounselor && <Check size={16} />}
-                        </div>
-                      </button>
+                      />
+                    ))}
+                    {matching.length > 0 && others.length > 0 && (
+                      <p className="px-4 py-1.5 text-[11px] font-medium text-gray-400 uppercase tracking-wide bg-grey-bg">
+                        Other counselors
+                      </p>
+                    )}
+                    {others.map((c) => (
+                      <CounselorOption
+                        key={c.id}
+                        counselor={c}
+                        selected={c.name === selectedCounselor}
+                        isSpecialist={false}
+                        onSelect={() => {
+                          setSelectedCounselor(c.name);
+                          setDropdownOpen(false);
+                        }}
+                      />
                     ))}
                   </div>
                 </>
@@ -165,6 +172,51 @@ export default function AssignCounselorModal({
         </div>
       </div>
     </div>
+  );
+}
+
+interface CounselorOptionProps {
+  counselor: Counselor;
+  selected: boolean;
+  isSpecialist: boolean;
+  onSelect: () => void;
+}
+
+// Consistent with the Counselor Status panel: name, country, availability badge, active
+// student count. Selection uses a solid navy row background, so badges swap to a
+// white-on-navy overlay treatment when selected rather than keeping their normal colors
+// (a navy "In Session" badge, for instance, would otherwise disappear against the selected
+// row's own navy background).
+function CounselorOption({ counselor: c, selected, isSpecialist, onSelect }: CounselorOptionProps) {
+  const overlayBadge = 'bg-white/20 text-white';
+
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      className={`w-full flex items-center justify-between gap-2 px-4 py-2.5 text-sm transition-colors text-left ${
+        selected ? 'bg-navy text-white' : 'text-navy hover:bg-grey-bg'
+      }`}
+    >
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <p className="font-medium truncate">{c.name}</p>
+          {isSpecialist && (
+            <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full flex-shrink-0 ${selected ? overlayBadge : 'bg-navy text-white'}`}>
+              {c.country} specialist
+            </span>
+          )}
+        </div>
+        <p className={`text-xs mt-0.5 ${selected ? 'text-white/60' : 'text-gray-400'}`}>{c.country}</p>
+        <p className={`text-[11px] mt-1 ${selected ? 'text-white/60' : 'text-gray-400'}`}>{c.activeAssignments} assigned students</p>
+      </div>
+      <div className="flex flex-col items-end gap-1.5 flex-shrink-0 ml-2">
+        <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${selected ? overlayBadge : AVAILABILITY_STYLES[c.availability]}`}>
+          {c.availability}
+        </span>
+        {selected && <Check size={16} />}
+      </div>
+    </button>
   );
 }
 

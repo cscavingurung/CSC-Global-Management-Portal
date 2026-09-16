@@ -37,12 +37,14 @@ export interface IntakeStudent {
   branch: string;
 }
 
+export type CounselorAvailability = 'Available' | 'In Session' | 'Away';
+
 export interface Counselor {
   id: string;
   name: string;
   country: string;
   activeAssignments: number;
-  capacity: number;
+  availability: CounselorAvailability;
 }
 
 export type ConsultationStatus = 'Awaiting Consultation' | 'In Progress' | 'Consultation Complete';
@@ -94,6 +96,7 @@ export interface StaffMember {
   id: string;
   name: string;
   email: string;
+  password: string;
   role: StaffRole;
   status: StaffStatus;
   branch: string;
@@ -115,6 +118,7 @@ export interface Branch {
   activeStudents: number;
   applicationsInProgress: number;
   visasGranted: number;
+  visasRefused: number;
 }
 
 export type PartnerType = 'College' | 'University';
@@ -143,4 +147,25 @@ export interface CommissionRecord {
   fullFee: number;
   commissionRate: number;
   commissionStatus: CommissionStatus;
+}
+
+export type NotificationTrigger = 'new-intake' | 'assigned-to-counselor' | 'consultation-ready';
+
+export interface AppNotification {
+  id: string;
+  trigger: NotificationTrigger;
+  studentName: string;
+  // Full message is `${messageBefore}${studentName}${messageAfter}`, split so the
+  // student's name alone can be rendered in bold.
+  messageBefore: string;
+  messageAfter: string;
+  createdAt: Date;
+  read: boolean;
+  navigateTo: string;
+  /** Which role this notification is addressed to. */
+  role: Role;
+  /** Set for role+branch-scoped notifications (receptionist, application officer). */
+  branch?: string;
+  /** Set for notifications addressed to one specific person (counselor). */
+  recipientName?: string;
 }

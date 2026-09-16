@@ -5,8 +5,9 @@ import {
   Users, BarChart3, UserPlus, UserCheck, CalendarDays, RefreshCw, Landmark,
   type LucideIcon,
 } from 'lucide-react';
-import { MockUser, NavItem } from '../types';
+import { AppNotification, MockUser, NavItem } from '../types';
 import { ROLE_LABELS } from '../mockData';
+import NotificationBell from './NotificationBell';
 
 const ICON_MAP: Record<string, LucideIcon> = {
   LayoutDashboard, Building2, GraduationCap, FileText, DollarSign,
@@ -19,6 +20,9 @@ interface DashboardShellProps {
   activeKey: string;
   onNavigate: (key: string) => void;
   onLogout: () => void;
+  notifications: AppNotification[];
+  onMarkNotificationRead: (id: string) => void;
+  onMarkAllNotificationsRead: (ids: string[]) => void;
   children: React.ReactNode;
 }
 
@@ -28,6 +32,9 @@ export default function DashboardShell({
   activeKey,
   onNavigate,
   onLogout,
+  notifications,
+  onMarkNotificationRead,
+  onMarkAllNotificationsRead,
   children,
 }: DashboardShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -104,7 +111,9 @@ export default function DashboardShell({
       {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0 lg:ml-64">
         {/* Top bar */}
-        <header className="bg-white border-b border-grey-border px-4 lg:px-8 py-4 flex items-center gap-4 sticky top-0 z-20">
+        {/* z-[41]: above the sidebar (z-40, so the notification dropdown's outside-click overlay can
+            catch clicks over it), below modals/drawers (z-50) so those still sit above the header */}
+        <header className="bg-white border-b border-grey-border px-4 lg:px-8 py-4 flex items-center gap-4 sticky top-0 z-[41]">
           <button
             className="lg:hidden text-navy"
             onClick={() => setSidebarOpen(true)}
@@ -118,6 +127,13 @@ export default function DashboardShell({
 
           {/* User info */}
           <div className="flex items-center gap-3">
+            <NotificationBell
+              notifications={notifications}
+              user={user}
+              onMarkRead={onMarkNotificationRead}
+              onMarkAllRead={onMarkAllNotificationsRead}
+              onNavigate={onNavigate}
+            />
             <div className="text-right hidden sm:block">
               <p className="text-sm font-medium text-navy leading-tight">{user.name}</p>
               <p className="text-xs text-gray-500">{user.branch}</p>

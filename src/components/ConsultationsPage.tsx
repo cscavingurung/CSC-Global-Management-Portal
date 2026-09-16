@@ -1,7 +1,9 @@
 import { useState, useMemo } from 'react';
-import { Search, X, Eye, CalendarDays, FileText } from 'lucide-react';
+import { Search, X, Eye, CalendarDays, FileText, ChevronDown } from 'lucide-react';
 import { CounselorStudent, ConsultationOutcome } from '../types';
 import StudentDetailDrawer from './StudentDetailDrawer';
+import DateRangeFilter from './DateRangeFilter';
+import { matchesDateRange } from '../dateFilter';
 
 interface ConsultationsPageProps {
   students: CounselorStudent[];
@@ -11,7 +13,7 @@ interface ConsultationsPageProps {
 type OutcomeFilter = 'all' | ConsultationOutcome;
 
 const OUTCOME_FILTER_OPTIONS: { value: OutcomeFilter; label: string }[] = [
-  { value: 'all', label: 'All' },
+  { value: 'all', label: 'All Outcomes' },
   { value: 'Pending', label: 'Pending' },
   { value: 'Proceeding', label: 'Proceeding' },
   { value: 'Not Proceeding', label: 'Not Proceeding' },
@@ -26,20 +28,23 @@ const OUTCOME_STYLES: Record<ConsultationOutcome, string> = {
 export default function ConsultationsPage({ students, onUpdateStudent }: ConsultationsPageProps) {
   const [search, setSearch] = useState('');
   const [outcomeFilter, setOutcomeFilter] = useState<OutcomeFilter>('all');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const [viewStudent, setViewStudent] = useState<CounselorStudent | null>(null);
 
   const completed = useMemo(() => {
     return students
       .filter((s) => s.consultationStatus === 'Consultation Complete')
       .filter((s) => outcomeFilter === 'all' || s.outcome === outcomeFilter)
-      .filter((s) => s.name.toLowerCase().includes(search.toLowerCase()));
-  }, [students, search, outcomeFilter]);
+      .filter((s) => s.name.toLowerCase().includes(search.toLowerCase()))
+      .filter((s) => matchesDateRange(s.completedDate, dateFrom, dateTo));
+  }, [students, search, outcomeFilter, dateFrom, dateTo]);
 
   return (
     <div className="space-y-5">
       {/* Search & filter bar */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
+      <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3">
+        <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
           <input
             type="text"
@@ -57,21 +62,19 @@ export default function ConsultationsPage({ students, onUpdateStudent }: Consult
             </button>
           )}
         </div>
-        <div className="flex gap-1 bg-white border border-grey-border rounded-lg p-1 overflow-x-auto">
-          {OUTCOME_FILTER_OPTIONS.map((opt) => (
-            <button
-              key={opt.value}
-              onClick={() => setOutcomeFilter(opt.value)}
-              className={`px-3 py-1.5 rounded-md text-sm font-medium whitespace-nowrap transition-colors ${
-                outcomeFilter === opt.value
-                  ? 'bg-navy text-white'
-                  : 'text-gray-500 hover:text-navy hover:bg-grey-bg'
-              }`}
-            >
-              {opt.label}
-            </button>
-          ))}
+        <div className="relative">
+          <select
+            value={outcomeFilter}
+            onChange={(e) => setOutcomeFilter(e.target.value as OutcomeFilter)}
+            className="w-full sm:w-auto appearance-none bg-white border border-grey-border rounded-lg pl-3 pr-9 py-2.5 text-sm font-medium text-navy focus:outline-none focus:border-navy-light focus:ring-1 focus:ring-navy-light transition-colors"
+          >
+            {OUTCOME_FILTER_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
+          <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
         </div>
+        <DateRangeFilter from={dateFrom} to={dateTo} onFromChange={setDateFrom} onToChange={setDateTo} />
       </div>
 
       {/* Summary */}
@@ -114,7 +117,7 @@ export default function ConsultationsPage({ students, onUpdateStudent }: Consult
             </div>
           ))}
         </div>
-      ) : search || outcomeFilter !== 'all' ? (
+      ) : search || outcomeFilter !== 'all' || dateFrom || dateTo ? (
         <div className="py-12 text-center text-sm text-gray-400">No consultations found.</div>
       ) : (
         <div className="py-16 text-center">

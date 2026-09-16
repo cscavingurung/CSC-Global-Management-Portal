@@ -2,6 +2,8 @@ import { useState, useMemo } from 'react';
 import { Search, X, ChevronRight, ChevronDown } from 'lucide-react';
 import { ApplicationRecord, ApplicationStatus } from '../types';
 import ApplicationDetailDrawer from './ApplicationDetailDrawer';
+import DateRangeFilter from './DateRangeFilter';
+import { matchesDateRange } from '../dateFilter';
 
 interface ApplicationsListProps {
   applications: ApplicationRecord[];
@@ -20,7 +22,7 @@ const STATUS_STYLES: Record<ApplicationStatus, string> = {
 };
 
 const STATUS_FILTER_OPTIONS: { value: StatusFilter; label: string }[] = [
-  { value: 'all', label: 'All' },
+  { value: 'all', label: 'All Statuses' },
   { value: 'Preparation', label: 'Preparation' },
   { value: 'Lodgement', label: 'Lodgement' },
   { value: 'Success', label: 'Success' },
@@ -31,6 +33,8 @@ export default function ApplicationsList({ applications, onUpdateApplication, br
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [branchFilter, setBranchFilter] = useState<string>('all');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const [selectedApp, setSelectedApp] = useState<ApplicationRecord | null>(null);
 
   const filtered = useMemo(() => {
@@ -38,15 +42,16 @@ export default function ApplicationsList({ applications, onUpdateApplication, br
       const matchesSearch = a.name.toLowerCase().includes(search.toLowerCase());
       const matchesStatus = statusFilter === 'all' || a.status === statusFilter;
       const matchesBranch = !showBranchFilter || branchFilter === 'all' || a.branch === branchFilter;
-      return matchesSearch && matchesStatus && matchesBranch;
+      const matchesDate = matchesDateRange(a.consultationDate, dateFrom, dateTo);
+      return matchesSearch && matchesStatus && matchesBranch && matchesDate;
     });
-  }, [applications, search, statusFilter, branchFilter, showBranchFilter]);
+  }, [applications, search, statusFilter, branchFilter, showBranchFilter, dateFrom, dateTo]);
 
   return (
     <div className="space-y-5">
       {/* Search & filter bar */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
+      <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3">
+        <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
           <input
             type="text"
@@ -65,20 +70,17 @@ export default function ApplicationsList({ applications, onUpdateApplication, br
           )}
         </div>
 
-        <div className="flex gap-1 bg-white border border-grey-border rounded-lg p-1 overflow-x-auto">
-          {STATUS_FILTER_OPTIONS.map((opt) => (
-            <button
-              key={opt.value}
-              onClick={() => setStatusFilter(opt.value)}
-              className={`px-3 py-1.5 rounded-md text-sm font-medium whitespace-nowrap transition-colors ${
-                statusFilter === opt.value
-                  ? 'bg-navy text-white'
-                  : 'text-gray-500 hover:text-navy hover:bg-grey-bg'
-              }`}
-            >
-              {opt.label}
-            </button>
-          ))}
+        <div className="relative">
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
+            className="w-full sm:w-auto appearance-none bg-white border border-grey-border rounded-lg pl-3 pr-9 py-2.5 text-sm font-medium text-navy focus:outline-none focus:border-navy-light focus:ring-1 focus:ring-navy-light transition-colors"
+          >
+            {STATUS_FILTER_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
+          <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
         </div>
         {showBranchFilter && branches && (
           <div className="relative">
@@ -95,6 +97,7 @@ export default function ApplicationsList({ applications, onUpdateApplication, br
             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
           </div>
         )}
+        <DateRangeFilter from={dateFrom} to={dateTo} onFromChange={setDateFrom} onToChange={setDateTo} />
       </div>
 
       {/* Table — desktop */}

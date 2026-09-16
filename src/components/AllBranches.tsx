@@ -38,6 +38,7 @@ export default function AllBranches({ branches, onAddBranch, onDeleteBranch }: A
       activeStudents: 0,
       applicationsInProgress: 0,
       visasGranted: 0,
+      visasRefused: 0,
     };
     onAddBranch(branch);
     setToastMessage(`Branch '${branch.name}' created`);
