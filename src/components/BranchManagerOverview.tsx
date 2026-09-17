@@ -81,7 +81,7 @@ export default function BranchManagerOverview({ branch, students, counselorStude
   );
 
   const statCards: { key: string; icon: LucideIcon; value: number; label: string }[] = [
-    { key: 'total-students', icon: GraduationCap, value: stats.totalStudentsThisMonth, label: 'Total Students This Month' },
+    { key: 'total-students', icon: GraduationCap, value: stats.totalStudentsThisMonth, label: 'Total Clients This Month' },
     { key: 'active-consultations', icon: CalendarDays, value: stats.activeConsultations, label: 'Active Consultations' },
     { key: 'applications-in-progress', icon: FileText, value: stats.applicationsInProgress, label: 'Applications In Progress' },
   ];
@@ -118,7 +118,7 @@ export default function BranchManagerOverview({ branch, students, counselorStude
           icon: UserX,
           iconColor: 'bg-orange-50 text-orange-600',
           name: s.name,
-          typeLabel: 'Student — unassigned',
+          typeLabel: 'Client — unassigned',
           timeText: `unassigned ${days} day${days === 1 ? '' : 's'}`,
           severity: hours / 24,
         });

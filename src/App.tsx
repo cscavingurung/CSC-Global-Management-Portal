@@ -14,6 +14,7 @@ import ComingSoon from './components/ComingSoon';
 import NewIntakeForm, { IntakeFormData } from './components/NewIntakeForm';
 import StudentList from './components/StudentList';
 import AssignCounselorPage from './components/AssignCounselorPage';
+import AssignedClientsPage from './components/AssignedClientsPage';
 import MyStudents from './components/MyStudents';
 import ConsultationsPage from './components/ConsultationsPage';
 import ApplicationsList from './components/ApplicationsList';
@@ -30,7 +31,7 @@ import {
 import { createIntakeNotification, createAssignmentNotification, createConsultationReadyNotification, createBranchManagerNotification } from './notifications';
 import { formatSubmittedAt } from './dateTime';
 import { fetchNotifications, insertNotification, markNotificationRead, markNotificationsRead } from './lib/notificationsApi';
-import { fetchCounselorStudents, updateCounselorStudent, insertCounselorStudent } from './lib/counselorStudentsApi';
+import { fetchCounselorStudents, updateCounselorStudent, upsertCounselorStudent } from './lib/counselorStudentsApi';
 import { fetchStudents, insertStudent, updateStudent } from './lib/studentsApi';
 import { fetchCounselors, insertCounselor, updateCounselor, deleteCounselor } from './lib/counselorsApi';
 import { fetchApplications, updateApplication, insertApplication } from './lib/applicationsApi';
@@ -167,41 +168,41 @@ export default function App() {
       insertNotification(notification).catch((err) => console.error('Failed to insert notification in Supabase', err));
       insertNotification(managerNotification).catch((err) => console.error('Failed to insert notification in Supabase', err));
 
-      const newCounselorStudent: CounselorStudent = {
-        id: `cs${Date.now()}`,
-        name: student.name,
-        phone: student.phone,
-        email: student.email,
-        country: student.country,
-        purpose: student.purpose,
-        dob: student.dob,
-        gender: student.gender,
-        maritalStatus: student.maritalStatus,
-        academicQualification: student.academicQualification,
-        ieltsPte: student.ieltsPte,
-        workExperience: student.workExperience,
-        submittedAt: student.submittedAt,
-        assignedDate: new Date().toISOString().slice(0, 10),
-        assignedCounselor: counselorName,
-        consultationStatus: 'Awaiting Consultation',
-        consultationNotes: '',
-        completedDate: null,
-        outcome: 'Pending',
-      };
-      setCounselorStudents((prev) => [newCounselorStudent, ...prev]);
-      insertCounselorStudent(newCounselorStudent).catch((err) =>
-        console.error('Failed to insert counselor_students in Supabase', err)
+      const existingCs = counselorStudents.find((cs) => cs.id === student.id);
+      const newCounselorStudent: CounselorStudent = existingCs
+        ? { ...existingCs, assignedCounselor: counselorName, assignedDate: new Date().toISOString().slice(0, 10) }
+        : {
+            id: student.id,
+            name: student.name,
+            phone: student.phone,
+            email: student.email,
+            country: student.country,
+            purpose: student.purpose,
+            dob: student.dob,
+            gender: student.gender,
+            maritalStatus: student.maritalStatus,
+            academicQualification: student.academicQualification,
+            ieltsPte: student.ieltsPte,
+            workExperience: student.workExperience,
+            submittedAt: student.submittedAt,
+            assignedDate: new Date().toISOString().slice(0, 10),
+            assignedCounselor: counselorName,
+            consultationStatus: 'Awaiting Consultation',
+            consultationNotes: '',
+            followUpDate: null,
+            completedDate: null,
+            outcome: 'Pending',
+          };
+      setCounselorStudents((prev) =>
+        prev.some((cs) => cs.id === newCounselorStudent.id)
+          ? prev.map((cs) => (cs.id === newCounselorStudent.id ? newCounselorStudent : cs))
+          : [newCounselorStudent, ...prev]
+      );
+      upsertCounselorStudent(newCounselorStudent).catch((err) =>
+        console.error('Failed to upsert counselor_students in Supabase', err)
       );
 
-      const matchedCounselor = counselors.find((c) => c.name === counselorName);
-      if (matchedCounselor) {
-        setCounselors((prev) =>
-          prev.map((c) => (c.id === matchedCounselor.id ? { ...c, activeAssignments: c.activeAssignments + 1 } : c))
-        );
-        updateCounselor(matchedCounselor.id, { activeAssignments: matchedCounselor.activeAssignments + 1 }).catch((err) =>
-          console.error('Failed to update counselor in Supabase', err)
-        );
-      }
+      // activeAssignments is now derived live from counselor_students — no DB write needed.
     }
   };
 
@@ -377,13 +378,25 @@ export default function App() {
     return applications.filter((a) => a.branch === user.branch);
   }, [applications, user]);
 
+  // Recompute activeAssignments live from counselor_students so the count always reflects
+  // real data rather than the stale integer stored in the counselors table.
+  const counselorsWithLiveCounts = useMemo(() => {
+    return counselors.map((c) => ({
+      ...c,
+      activeAssignments: counselorStudents.filter(
+        (s) => s.assignedCounselor === c.name && s.consultationStatus !== 'Consultation Complete'
+      ).length,
+    }));
+  }, [counselors, counselorStudents]);
+
   // Counselor rows carry no `branch` of their own — resolved via their staff record
   // (matched by name), same technique used in computeBranchOverviewStats.
   const branchCounselors = useMemo(() => {
-    if (!user || user.role === 'super_admin') return counselors;
+    if (!user || user.role === 'super_admin') return counselorsWithLiveCounts;
     const counselorBranchByName = new Map(staff.filter((s) => s.role === 'Counselor').map((s) => [s.name, s.branch]));
-    return counselors.filter((c) => counselorBranchByName.get(c.name) === user.branch);
-  }, [counselors, staff, user]);
+    return counselorsWithLiveCounts.filter((c) => counselorBranchByName.get(c.name) === user.branch);
+  }, [counselorsWithLiveCounts, staff, user]);
+
 
   const upcomingConsultations = useMemo(() => {
     const pending = counselorStudents.filter((s) => s.consultationStatus !== 'Consultation Complete');
@@ -474,6 +487,7 @@ export default function App() {
         <StudentList
           students={branchStudents}
           counselors={branchCounselors}
+          counselorStudents={counselorStudents}
           onAssign={handleAssign}
           branches={branchNames}
           showBranchFilter={isSuperAdmin}
@@ -481,6 +495,8 @@ export default function App() {
       );
     if (activeKey === 'assign-counselor')
       return <AssignCounselorPage students={branchStudents} counselors={branchCounselors} onAssign={handleAssign} />;
+    if (activeKey === 'assigned')
+      return <AssignedClientsPage counselorStudents={counselorStudents} />;
     if (activeKey === 'partners')
       return (
         <PartnersPage

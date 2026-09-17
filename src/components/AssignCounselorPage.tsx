@@ -32,7 +32,7 @@ export default function AssignCounselorPage({ students, counselors, onAssign }: 
               <div className="min-w-0">
                 <p className="text-sm font-semibold text-navy truncate">{c.name}</p>
                 <p className="text-xs text-gray-500 truncate">{c.country}</p>
-                <p className="text-xs text-gray-400 mt-1">{c.activeAssignments} assigned students</p>
+                <p className="text-xs text-gray-400 mt-1">{c.activeAssignments} assigned clients</p>
               </div>
               <span
                 className={`text-xs font-medium px-2.5 py-1 rounded-full flex-shrink-0 ${AVAILABILITY_STYLES[c.availability]}`}
@@ -53,7 +53,7 @@ export default function AssignCounselorPage({ students, counselors, onAssign }: 
 
         {unassigned.length === 0 ? (
           <div className="bg-white rounded-xl border border-grey-border py-12 text-center text-sm text-gray-400">
-            No students waiting to be assigned.
+            No clients waiting to be assigned.
           </div>
         ) : (
           <>

@@ -27,7 +27,7 @@ export const NAV_CONFIG: NavConfig = {
   super_admin: [
     { key: 'overview', label: 'Dashboard', icon: 'LayoutDashboard' },
     { key: 'branches', label: 'All Branches', icon: 'Building2' },
-    { key: 'students', label: 'Students', icon: 'GraduationCap' },
+    { key: 'students', label: 'Clients', icon: 'GraduationCap' },
     { key: 'applications', label: 'Applications', icon: 'FileText' },
     { key: 'partners', label: 'Partners', icon: 'Landmark' },
     { key: 'commissions', label: 'Commissions', icon: 'DollarSign' },
@@ -47,7 +47,7 @@ export const NAV_CONFIG: NavConfig = {
   ],
   branch_manager: [
     { key: 'overview', label: 'Dashboard', icon: 'LayoutDashboard' },
-    { key: 'students', label: 'Students', icon: 'GraduationCap' },
+    { key: 'students', label: 'Clients', icon: 'GraduationCap' },
     { key: 'applications', label: 'Applications', icon: 'FileText' },
     { key: 'staff', label: 'Staff', icon: 'Users' },
     { key: 'reports', label: 'Reports', icon: 'BarChart3' },
@@ -57,6 +57,7 @@ export const NAV_CONFIG: NavConfig = {
     { key: 'new-intake', label: 'Leads', icon: 'UserPlus' },
     { key: 'students', label: 'Clients', icon: 'GraduationCap' },
     { key: 'assign-counselor', label: 'Assign Counselor', icon: 'UserCheck' },
+    { key: 'assigned', label: 'Assigned', icon: 'Users' },
   ],
   counselor: [
     { key: 'overview', label: 'Dashboard', icon: 'LayoutDashboard' },

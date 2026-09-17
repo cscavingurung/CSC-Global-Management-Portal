@@ -74,6 +74,7 @@ export interface CounselorStudent {
   assignedCounselor: string;
   consultationStatus: ConsultationStatus;
   consultationNotes: string;
+  followUpDate: string | null;
   completedDate: string | null;
   outcome: ConsultationOutcome;
 }

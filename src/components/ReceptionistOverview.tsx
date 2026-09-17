@@ -46,6 +46,7 @@ export default function ReceptionistOverview({ students, upcomingConsultations, 
 
   const inQueue = useMemo<QueueRow[]>(() => {
     return upcomingConsultations
+      .filter((s) => s.consultationStatus === 'Awaiting Consultation' || s.consultationStatus === 'In Progress')
       .map((s) => {
         const assignedAt = parseSubmittedAt(s.submittedAt);
         return {
@@ -101,7 +102,7 @@ export default function ReceptionistOverview({ students, upcomingConsultations, 
         key: 'unassigned',
         icon: UserX,
         value: String(unassigned.length),
-        label: 'Unassigned Students',
+        label: 'Unassigned Clients',
         trend: waitingOver24h === 0 ? 'None waiting over 24 hrs' : `${waitingOver24h} waiting over 24 hrs`,
         emphasized: true,
       },
@@ -201,7 +202,7 @@ export default function ReceptionistOverview({ students, upcomingConsultations, 
               })}
             </div>
           ) : (
-            <p className="text-sm text-gray-400 text-center py-6">No students waiting — queue is clear.</p>
+            <p className="text-sm text-gray-400 text-center py-6">No clients waiting — queue is clear.</p>
           )}
         </div>
 
@@ -213,7 +214,7 @@ export default function ReceptionistOverview({ students, upcomingConsultations, 
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium text-navy truncate">{c.name}</p>
                   <p className="text-xs text-gray-500 truncate">{c.country}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">{c.activeAssignments} assigned students</p>
+                  <p className="text-xs text-gray-400 mt-0.5">{c.activeAssignments} assigned clients</p>
                 </div>
                 <span className={`text-xs font-medium px-2.5 py-1 rounded-full flex-shrink-0 ml-2 ${AVAILABILITY_STYLES[c.availability]}`}>
                   {c.availability}

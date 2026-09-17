@@ -69,7 +69,7 @@ export default function CounselorOverview({ counselorName, counselorStudents, ap
   const myConsultations = useMemo(
     () =>
       myStudents
-        .filter((s) => s.consultationStatus !== 'Consultation Complete')
+        .filter((s) => s.consultationStatus === 'Awaiting Consultation')
         .sort((a, b) => (a.assignedDate < b.assignedDate ? -1 : a.assignedDate > b.assignedDate ? 1 : 0)),
     [myStudents]
   );
@@ -105,7 +105,7 @@ export default function CounselorOverview({ counselorName, counselorStudents, ap
         key: 'my-students',
         icon: GraduationCap,
         value: String(myStudents.length),
-        label: 'My Students',
+        label: 'My Clients',
         trend: `${inProgress.length} in progress`,
       },
       {
@@ -162,7 +162,7 @@ export default function CounselorOverview({ counselorName, counselorStudents, ap
       {/* Consultations + applications */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="stat-card">
-          <h3 className="text-base font-semibold text-navy mb-4">Upcoming Students</h3>
+          <h3 className="text-base font-semibold text-navy mb-4">Upcoming Clients</h3>
           {myConsultations.length > 0 ? (
             <div className="space-y-0">
               {myConsultations.map((s) => (
@@ -199,7 +199,7 @@ export default function CounselorOverview({ counselorName, counselorStudents, ap
               ))}
             </div>
           ) : (
-            <p className="text-sm text-gray-400 text-center py-6">No students in application stage.</p>
+            <p className="text-sm text-gray-400 text-center py-6">No clients in application stage.</p>
           )}
         </div>
       </div>

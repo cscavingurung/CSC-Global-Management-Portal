@@ -188,7 +188,7 @@ export default function SuperAdminOverview({ branches, staff, students, counselo
   const decidedTotal = stats.decidedGranted + stats.decidedRefused;
 
   const statCards: { key: string; icon: LucideIcon; value: number; label: string }[] = [
-    { key: 'total-students', icon: GraduationCap, value: stats.totalStudentsThisMonth, label: 'Total Students This Month' },
+    { key: 'total-students', icon: GraduationCap, value: stats.totalStudentsThisMonth, label: 'Total Clients This Month' },
     { key: 'active-consultations', icon: CalendarDays, value: stats.activeConsultations, label: 'Active Consultations' },
     { key: 'applications-in-progress', icon: FileText, value: stats.applicationsInProgress, label: 'Applications In Progress' },
   ];
@@ -197,7 +197,7 @@ export default function SuperAdminOverview({ branches, staff, students, counselo
     { key: 'name', label: 'Branch', align: 'left' },
     { key: 'manager', label: 'Manager', align: 'left' },
     { key: 'staffCount', label: 'Staff', align: 'right' },
-    { key: 'activeStudents', label: 'Active Students', align: 'right' },
+    { key: 'activeStudents', label: 'Active Clients', align: 'right' },
     { key: 'applicationsInProgress', label: 'Apps In Progress', align: 'right' },
     { key: 'visasGranted', label: 'Visas Granted', align: 'right' },
     { key: 'successRate', label: 'Success Rate', align: 'right' },

@@ -86,7 +86,7 @@ export default function AssignCounselorModal({
           {/* Student details */}
           <div className="px-5 py-5">
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
-              Student Details
+              Client Details
             </p>
             <div className="bg-grey-bg rounded-xl p-4 space-y-3">
               {detailRows.map((row) => {
@@ -216,7 +216,7 @@ function CounselorOption({ counselor: c, selected, isSpecialist, onSelect }: Cou
           )}
         </div>
         <p className={`text-xs mt-0.5 ${selected ? 'text-white/60' : 'text-gray-400'}`}>{c.country}</p>
-        <p className={`text-[11px] mt-1 ${selected ? 'text-white/60' : 'text-gray-400'}`}>{c.activeAssignments} assigned students</p>
+        <p className={`text-[11px] mt-1 ${selected ? 'text-white/60' : 'text-gray-400'}`}>{c.activeAssignments} assigned clients</p>
       </div>
       <div className="flex flex-col items-end gap-1.5 flex-shrink-0 ml-2">
         <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${selected ? overlayBadge : AVAILABILITY_STYLES[c.availability]}`}>

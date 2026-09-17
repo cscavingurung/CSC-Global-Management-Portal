@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Search, X, UserCheck, ChevronDown } from 'lucide-react';
-import { Counselor, IntakeStudent } from '../types';
+import { Counselor, CounselorStudent, IntakeStudent } from '../types';
 import AssignCounselorModal from './AssignCounselorModal';
 import DateRangeFilter from './DateRangeFilter';
 import { matchesDateRange } from '../dateFilter';
@@ -8,6 +8,7 @@ import { matchesDateRange } from '../dateFilter';
 interface StudentListProps {
   students: IntakeStudent[];
   counselors: Counselor[];
+  counselorStudents?: CounselorStudent[];
   onAssign: (studentId: string, counselorName: string) => void;
   branches?: string[];
   showBranchFilter?: boolean;
@@ -15,7 +16,15 @@ interface StudentListProps {
 
 type StatusFilter = 'all' | 'New' | 'Assigned';
 
-export default function StudentList({ students, counselors, onAssign, branches, showBranchFilter }: StudentListProps) {
+const CONSULTATION_STATUS_STYLES: Record<string, string> = {
+  'Awaiting Consultation': 'bg-orange-100 text-orange-700',
+  'In Progress': 'bg-blue-100 text-blue-700',
+  'Follow Up': 'bg-purple-100 text-purple-700',
+  'Consultation Complete': 'bg-green-100 text-green-700',
+};
+
+export default function StudentList({ students, counselors, counselorStudents = [], onAssign, branches, showBranchFilter }: StudentListProps) {
+  const csMap = useMemo(() => new Map(counselorStudents.map((cs) => [cs.email, cs])), [counselorStudents]);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [branchFilter, setBranchFilter] = useState<string>('all');
@@ -25,6 +34,9 @@ export default function StudentList({ students, counselors, onAssign, branches, 
 
   const filtered = useMemo(() => {
     return students.filter((s) => {
+      const cs = csMap.get(s.email);
+      const consultationStatus = cs?.consultationStatus;
+      if (consultationStatus === 'In Progress' || consultationStatus === 'Follow Up' || consultationStatus === 'Consultation Complete') return false;
       const matchesSearch =
         s.name.toLowerCase().includes(search.toLowerCase()) ||
         s.email.toLowerCase().includes(search.toLowerCase());
@@ -33,7 +45,7 @@ export default function StudentList({ students, counselors, onAssign, branches, 
       const matchesDate = matchesDateRange(s.submittedAt, dateFrom, dateTo);
       return matchesSearch && matchesStatus && matchesBranch && matchesDate;
     });
-  }, [students, search, statusFilter, branchFilter, showBranchFilter, dateFrom, dateTo]);
+  }, [students, csMap, search, statusFilter, branchFilter, showBranchFilter, dateFrom, dateTo]);
 
   const statusOptions: { value: StatusFilter; label: string }[] = [
     { value: 'all', label: 'All Statuses' },
@@ -111,7 +123,11 @@ export default function StudentList({ students, counselors, onAssign, branches, 
             </tr>
           </thead>
           <tbody>
-            {filtered.map((s) => (
+            {filtered.map((s) => {
+              const cs = csMap.get(s.email);
+              const consultationStatus = cs?.consultationStatus;
+              const canReassign = !consultationStatus || consultationStatus === 'Awaiting Consultation';
+              return (
               <tr key={s.id} className="border-b border-grey-border last:border-0 hover:bg-grey-bg/50 transition-colors">
                 <td className="px-5 py-3.5">
                   <p className="text-sm font-medium text-navy">{s.name}</p>
@@ -122,11 +138,17 @@ export default function StudentList({ students, counselors, onAssign, branches, 
                 <td className="px-5 py-3.5 text-sm text-gray-600">{s.purpose}</td>
                 <td className="px-5 py-3.5 text-sm text-gray-500 whitespace-nowrap">{s.submittedAt}</td>
                 <td className="px-5 py-3.5">
-                  <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${
-                    s.status === 'New' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'
-                  }`}>
-                    {s.status}
-                  </span>
+                  {consultationStatus ? (
+                    <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${CONSULTATION_STATUS_STYLES[consultationStatus]}`}>
+                      {consultationStatus}
+                    </span>
+                  ) : (
+                    <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${
+                      s.status === 'New' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'
+                    }`}>
+                      {s.status}
+                    </span>
+                  )}
                 </td>
                 {showBranchFilter && <td className="px-5 py-3.5 text-sm text-gray-600">{s.branch}</td>}
                 <td className="px-5 py-3.5 text-sm text-gray-600">
@@ -141,17 +163,20 @@ export default function StudentList({ students, counselors, onAssign, branches, 
                       <UserCheck size={15} />
                       Assign
                     </button>
-                  ) : (
+                  ) : canReassign ? (
                     <button
                       onClick={() => setAssignStudent(s)}
                       className="text-sm text-gray-400 hover:text-navy transition-colors"
                     >
                       Reassign
                     </button>
+                  ) : (
+                    <span className="text-xs text-gray-300">—</span>
                   )}
                 </td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
         {filtered.length === 0 && (
@@ -161,18 +186,28 @@ export default function StudentList({ students, counselors, onAssign, branches, 
 
       {/* Card list — mobile */}
       <div className="lg:hidden space-y-3">
-        {filtered.map((s) => (
+        {filtered.map((s) => {
+          const cs = csMap.get(s.email);
+          const consultationStatus = cs?.consultationStatus;
+          const canReassign = !consultationStatus || consultationStatus === 'Awaiting Consultation';
+          return (
           <div key={s.id} className="bg-white rounded-xl border border-grey-border p-4">
             <div className="flex items-start justify-between mb-2">
               <div className="min-w-0">
                 <p className="text-sm font-semibold text-navy">{s.name}</p>
                 <p className="text-xs text-gray-400">{s.email}</p>
               </div>
-              <span className={`text-xs font-medium px-2.5 py-1 rounded-full flex-shrink-0 ml-2 ${
-                s.status === 'New' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'
-              }`}>
-                {s.status}
-              </span>
+              {consultationStatus ? (
+                <span className={`text-xs font-medium px-2.5 py-1 rounded-full flex-shrink-0 ml-2 ${CONSULTATION_STATUS_STYLES[consultationStatus]}`}>
+                  {consultationStatus}
+                </span>
+              ) : (
+                <span className={`text-xs font-medium px-2.5 py-1 rounded-full flex-shrink-0 ml-2 ${
+                  s.status === 'New' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'
+                }`}>
+                  {s.status}
+                </span>
+              )}
             </div>
             <div className="grid grid-cols-2 gap-2 text-xs text-gray-500 mb-3">
               <p>Phone: <span className="text-gray-700">{s.phone}</span></p>
@@ -184,16 +219,19 @@ export default function StudentList({ students, counselors, onAssign, branches, 
               <p className="text-xs text-gray-500">
                 {s.assignedCounselor ? `Counselor: ${s.assignedCounselor}` : 'No counselor assigned'}
               </p>
-              <button
-                onClick={() => setAssignStudent(s)}
-                className="inline-flex items-center gap-1.5 text-sm font-medium text-navy hover:text-navy-light transition-colors"
-              >
-                <UserCheck size={15} />
-                {s.status === 'New' ? 'Assign' : 'Reassign'}
-              </button>
+              {s.status === 'New' || canReassign ? (
+                <button
+                  onClick={() => setAssignStudent(s)}
+                  className="inline-flex items-center gap-1.5 text-sm font-medium text-navy hover:text-navy-light transition-colors"
+                >
+                  <UserCheck size={15} />
+                  {s.status === 'New' ? 'Assign' : 'Reassign'}
+                </button>
+              ) : null}
             </div>
           </div>
-        ))}
+          );
+        })}
         {filtered.length === 0 && (
           <div className="py-12 text-center text-sm text-gray-400">No clients found.</div>
         )}

@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import {
-  ArrowLeft, User, Phone, Mail, Globe, Target, CalendarDays, Lock,
+  ArrowLeft, User, Phone, Mail, Globe, Target, CalendarDays, Lock, Calendar,
   Cake, Users, Heart, GraduationCap, Languages, Briefcase,
 } from 'lucide-react';
 import { CounselorStudent, ConsultationStatus } from '../types';
@@ -44,6 +44,11 @@ export default function StudentProfile({ student, onClose }: StudentProfileProps
     { icon: Briefcase, label: 'Work Experience', value: student.workExperience },
     { icon: CalendarDays, label: 'Submitted', value: student.submittedAt },
     { icon: CalendarDays, label: 'Assigned', value: student.assignedDate },
+    ...(status === 'Follow Up'
+      ? [{ icon: Calendar, label: 'Next Visit Date', value: student.followUpDate
+            ? new Date(student.followUpDate + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+            : 'Not set' }]
+      : []),
   ];
 
   const initials = student.name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase();
@@ -60,7 +65,7 @@ export default function StudentProfile({ student, onClose }: StudentProfileProps
           Back
         </button>
         <span className="text-gray-300">|</span>
-        <h1 className="text-base font-semibold text-navy">Student Profile</h1>
+        <h1 className="text-base font-semibold text-navy">Client Profile</h1>
       </div>
 
       {/* Scrollable content */}
@@ -86,6 +91,12 @@ export default function StudentProfile({ student, onClose }: StudentProfileProps
                     >
                       <Lock size={11} />
                       {outcome}
+                    </span>
+                  )}
+                  {student.followUpDate && status === 'Follow Up' && (
+                    <span className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-purple-50 text-purple-700">
+                      <Calendar size={11} />
+                      Returns {new Date(student.followUpDate + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
                     </span>
                   )}
                 </div>

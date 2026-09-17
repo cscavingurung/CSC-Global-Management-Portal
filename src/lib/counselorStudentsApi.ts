@@ -19,6 +19,7 @@ interface CounselorStudentRow {
   assigned_counselor: string;
   consultation_status: CounselorStudent['consultationStatus'];
   consultation_notes: string;
+  follow_up_date: string | null;
   completed_date: string | null;
   outcome: CounselorStudent['outcome'];
 }
@@ -42,6 +43,7 @@ function fromRow(row: CounselorStudentRow): CounselorStudent {
     assignedCounselor: row.assigned_counselor,
     consultationStatus: row.consultation_status,
     consultationNotes: row.consultation_notes,
+    followUpDate: row.follow_up_date,
     completedDate: row.completed_date,
     outcome: row.outcome,
   };
@@ -65,6 +67,7 @@ function toRowUpdates(updates: Partial<CounselorStudent>): Record<string, unknow
   if (updates.assignedCounselor !== undefined) row.assigned_counselor = updates.assignedCounselor;
   if (updates.consultationStatus !== undefined) row.consultation_status = updates.consultationStatus;
   if (updates.consultationNotes !== undefined) row.consultation_notes = updates.consultationNotes;
+  if (updates.followUpDate !== undefined) row.follow_up_date = updates.followUpDate;
   if (updates.completedDate !== undefined) row.completed_date = updates.completedDate;
   if (updates.outcome !== undefined) row.outcome = updates.outcome;
   return row;
@@ -89,14 +92,17 @@ function toRow(cs: CounselorStudent): CounselorStudentRow {
     assigned_counselor: cs.assignedCounselor,
     consultation_status: cs.consultationStatus,
     consultation_notes: cs.consultationNotes,
+    follow_up_date: cs.followUpDate,
     completed_date: cs.completedDate,
     outcome: cs.outcome,
   };
 }
 
-export async function insertCounselorStudent(counselorStudent: CounselorStudent): Promise<void> {
+export async function upsertCounselorStudent(counselorStudent: CounselorStudent): Promise<void> {
   if (!supabase) return;
-  const { error } = await supabase.from('counselor_students').insert(toRow(counselorStudent));
+  const { error } = await supabase
+    .from('counselor_students')
+    .upsert(toRow(counselorStudent), { onConflict: 'id' });
   if (error) throw error;
 }
 

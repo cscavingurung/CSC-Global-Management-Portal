@@ -96,7 +96,7 @@ export default function CommissionsPage({ commissions, partners, onUpdateCommiss
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by student or consultant"
+            placeholder="Search by client or consultant"
             className="w-full pl-10 pr-4 py-2.5 border border-grey-border rounded-lg text-sm bg-white focus:outline-none focus:border-navy-light focus:ring-1 focus:ring-navy-light transition-colors"
           />
           {search && (
@@ -124,7 +124,7 @@ export default function CommissionsPage({ commissions, partners, onUpdateCommiss
         <table className="w-full">
           <thead>
             <tr className="border-b border-grey-border bg-grey-bg">
-              <th className="text-left text-xs font-semibold text-gray-500 px-5 py-3">Student</th>
+              <th className="text-left text-xs font-semibold text-gray-500 px-5 py-3">Client</th>
               <th className="text-left text-xs font-semibold text-gray-500 px-5 py-3">Branch</th>
               <th className="text-left text-xs font-semibold text-gray-500 px-5 py-3">Partner</th>
               <th className="text-right text-xs font-semibold text-gray-500 px-5 py-3">Full Fee</th>
@@ -242,7 +242,7 @@ export default function CommissionsPage({ commissions, partners, onUpdateCommiss
             <form onSubmit={handleEditSubmit} className="flex-1 flex flex-col overflow-hidden">
               <div className="flex-1 overflow-y-auto px-5 py-5 space-y-4">
                 <div className="bg-grey-bg rounded-xl p-4 space-y-2">
-                  <p className="text-xs text-gray-400">Student</p>
+                  <p className="text-xs text-gray-400">Client</p>
                   <p className="text-sm font-medium text-navy">{editTarget.studentName}</p>
                   <p className="text-xs text-gray-400 mt-2">Consultant</p>
                   <p className="text-sm font-medium text-navy">{editTarget.consultant}</p>

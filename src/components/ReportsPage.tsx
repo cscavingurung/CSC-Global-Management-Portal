@@ -175,7 +175,7 @@ export default function ReportsPage({ branches, showBranchFilter }: ReportsPageP
 
         {/* Horizontal bar — Students by Country */}
         <div className="stat-card lg:col-span-2">
-          <h3 className="text-base font-semibold text-navy mb-1">Students by Country of Interest</h3>
+          <h3 className="text-base font-semibold text-navy mb-1">Clients by Country of Interest</h3>
           <p className="text-xs text-gray-400 mb-6">Top destinations for this period</p>
           <div className="space-y-3">
             {countryData.map((item) => (

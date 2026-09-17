@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Search, X, ChevronRight, PhoneCall } from 'lucide-react';
+import { Search, X, ChevronRight, PhoneCall, Calendar } from 'lucide-react';
 import { CounselorStudent } from '../types';
 import StudentProfile from './StudentProfile';
 import DateRangeFilter from './DateRangeFilter';
@@ -18,7 +18,7 @@ export default function FollowUpsPage({ students, onUpdateStudent }: FollowUpsPa
 
   const followUps = useMemo(() => {
     return students
-      .filter((s) => s.consultationStatus === 'Follow Up')
+      .filter((s) => s.consultationStatus === 'Follow Up' && !!s.followUpDate)
       .filter((s) => s.name.toLowerCase().includes(search.toLowerCase()))
       .filter((s) => matchesDateRange(s.assignedDate, dateFrom, dateTo));
   }, [students, search, dateFrom, dateTo]);
@@ -64,6 +64,7 @@ export default function FollowUpsPage({ students, onUpdateStudent }: FollowUpsPa
               <th className="text-left text-xs font-semibold text-gray-500 px-5 py-3">Country</th>
               <th className="text-left text-xs font-semibold text-gray-500 px-5 py-3">Purpose</th>
               <th className="text-left text-xs font-semibold text-gray-500 px-5 py-3">Assigned</th>
+              <th className="text-left text-xs font-semibold text-gray-500 px-5 py-3">Next Visit</th>
               <th className="text-right text-xs font-semibold text-gray-500 px-5 py-3"></th>
             </tr>
           </thead>
@@ -82,6 +83,16 @@ export default function FollowUpsPage({ students, onUpdateStudent }: FollowUpsPa
                 <td className="px-5 py-3.5 text-sm text-gray-600">{s.country}</td>
                 <td className="px-5 py-3.5 text-sm text-gray-600">{s.purpose}</td>
                 <td className="px-5 py-3.5 text-sm text-gray-500 whitespace-nowrap">{s.assignedDate}</td>
+                <td className="px-5 py-3.5 whitespace-nowrap">
+                  {s.followUpDate ? (
+                    <span className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-purple-50 text-purple-700">
+                      <Calendar size={11} />
+                      {new Date(s.followUpDate + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    </span>
+                  ) : (
+                    <span className="text-xs text-gray-400">Not set</span>
+                  )}
+                </td>
                 <td className="px-5 py-3.5 text-right">
                   <ChevronRight className="text-gray-300 inline" size={18} />
                 </td>
@@ -116,6 +127,17 @@ export default function FollowUpsPage({ students, onUpdateStudent }: FollowUpsPa
               <p>Country: <span className="text-gray-700">{s.country}</span></p>
               <p>Purpose: <span className="text-gray-700">{s.purpose}</span></p>
               <p>Assigned: <span className="text-gray-700">{s.assignedDate}</span></p>
+              <p className="col-span-2">
+                Next Visit:{' '}
+                {s.followUpDate ? (
+                  <span className="inline-flex items-center gap-1 font-medium text-purple-700">
+                    <Calendar size={11} />
+                    {new Date(s.followUpDate + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                  </span>
+                ) : (
+                  <span className="text-gray-400">Not set</span>
+                )}
+              </p>
             </div>
             <div className="flex items-center justify-between pt-3 border-t border-grey-border">
               <p className="text-xs text-gray-400">Tap to view details</p>

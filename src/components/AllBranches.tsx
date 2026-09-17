@@ -123,7 +123,7 @@ export default function AllBranches({ branches, staff, students, applications, o
                 </div>
                 <div>
                   <p className="text-lg font-bold text-navy">{stats?.activeStudents ?? 0}</p>
-                  <p className="text-xs text-gray-400">Students</p>
+                  <p className="text-xs text-gray-400">Clients</p>
                 </div>
                 <div>
                   <p className="text-lg font-bold text-navy">{stats?.applicationsInProgress ?? 0}</p>
@@ -224,7 +224,7 @@ export default function AllBranches({ branches, staff, students, applications, o
               <div className="grid grid-cols-2 gap-3">
                 {[
                   { icon: Users, label: 'Staff', value: statsByBranch.get(selectedBranch.name)?.staffCount ?? 0 },
-                  { icon: GraduationCap, label: 'Active Students', value: statsByBranch.get(selectedBranch.name)?.activeStudents ?? 0 },
+                  { icon: GraduationCap, label: 'Active Clients', value: statsByBranch.get(selectedBranch.name)?.activeStudents ?? 0 },
                   { icon: FileText, label: 'Apps In Progress', value: statsByBranch.get(selectedBranch.name)?.applicationsInProgress ?? 0 },
                   { icon: CheckIcon, label: 'Visas Granted', value: statsByBranch.get(selectedBranch.name)?.visasGranted ?? 0, green: true },
                 ].map((stat) => {

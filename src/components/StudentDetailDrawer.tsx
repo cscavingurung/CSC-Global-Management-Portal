@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
-  X, User, Phone, Mail, Globe, Target, CalendarDays,
-  Send, CheckCircle, XCircle, ClipboardList, Lock,
+  ArrowLeft, User, Phone, Mail, Globe, Target, CalendarDays,
+  Send, CheckCircle, XCircle, Lock, Calendar,
   Cake, Users, Heart, GraduationCap, Languages, Briefcase,
 } from 'lucide-react';
 import { CounselorStudent, ConsultationStatus, ConsultationOutcome } from '../types';
@@ -22,16 +22,15 @@ const STATUS_STYLES: Record<ConsultationStatus, string> = {
 };
 
 export default function StudentDetailDrawer({ student, onClose, onUpdate }: StudentDetailDrawerProps) {
-  const [notes, setNotes] = useState(student.consultationNotes);
   const [status, setStatus] = useState<ConsultationStatus>(student.consultationStatus);
   const [outcome, setOutcome] = useState<ConsultationOutcome>(student.outcome);
+  const [followUpDate, setFollowUpDate] = useState(student.followUpDate ?? '');
+  const [inputDate, setInputDate] = useState(student.followUpDate ?? '');
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
 
   useEffect(() => {
-    const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
+    const handleEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', handleEsc);
     return () => window.removeEventListener('keydown', handleEsc);
   }, [onClose]);
@@ -52,29 +51,25 @@ export default function StudentDetailDrawer({ student, onClose, onUpdate }: Stud
     onUpdate(updates);
   };
 
-  const handleNotesChange = (value: string) => {
-    setNotes(value);
-    onUpdate({ consultationNotes: value });
+  const handleConfirmFollowUp = () => {
+    onUpdate({ followUpDate: inputDate || null });
+    setToastMessage('Follow-up date confirmed');
+    setShowToast(true);
+    setTimeout(() => onClose(), 1000);
   };
 
   const handleOutcomeChange = (newOutcome: ConsultationOutcome) => {
-    // Once a decision is made, it's final — the record moves to Enrolled (Proceeding) or
-    // Archive (Not Proceeding) and can't be reversed from here.
     if (outcome !== 'Pending') return;
     setOutcome(newOutcome);
     onUpdate({ outcome: newOutcome });
-    if (newOutcome === 'Proceeding') {
-      setToastMessage('Sent to VA Officer');
-      setShowToast(true);
-    } else if (newOutcome === 'Not Proceeding') {
-      setToastMessage('Marked as not proceeding');
-      setShowToast(true);
-    }
+    setToastMessage(newOutcome === 'Proceeding' ? 'Sent to VA Officer' : 'Marked as not proceeding');
+    setShowToast(true);
+    setTimeout(() => onClose(), 1000);
   };
 
-  // Same field set (and order) as the Leads intake form — see NewIntakeForm.tsx.
+  const initials = student.name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase();
+
   const detailRows = [
-    { icon: User, label: 'Name', value: student.name },
     { icon: Phone, label: 'Phone', value: student.phone },
     { icon: Mail, label: 'Email', value: student.email },
     { icon: Globe, label: 'Country of Interest', value: student.country },
@@ -90,132 +85,177 @@ export default function StudentDetailDrawer({ student, onClose, onUpdate }: Stud
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end">
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-navy-dark/50 backdrop-blur-sm" onClick={onClose} />
+    <div className="fixed inset-y-0 left-0 right-0 lg:left-64 z-50 bg-grey-bg flex flex-col">
+      {/* Top bar */}
+      <div className="flex-shrink-0 bg-white border-b border-grey-border px-5 py-4 flex items-center gap-3">
+        <button
+          onClick={onClose}
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-navy hover:text-navy-light transition-colors"
+        >
+          <ArrowLeft size={18} />
+          Back
+        </button>
+        <span className="text-gray-300">|</span>
+        <h1 className="text-base font-semibold text-navy">Client Profile</h1>
+      </div>
 
-      {/* Drawer */}
-      <div className="relative w-full sm:max-w-md bg-white shadow-2xl h-full flex flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-grey-border flex-shrink-0">
-          <div className="flex items-center gap-2">
-            <ClipboardList className="text-navy" size={20} />
-            <h2 className="text-base font-semibold text-navy">Client Details</h2>
-          </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-navy transition-colors">
-            <X size={20} />
-          </button>
-        </div>
+      {/* Scrollable content */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="max-w-3xl mx-auto px-5 py-6 space-y-5">
 
-        {/* Scrollable content */}
-        <div className="flex-1 overflow-y-auto">
-          {/* Student info card */}
-          <div className="px-5 py-5">
-            <div className="bg-grey-bg rounded-xl p-4 space-y-3">
-              {detailRows.map((row) => {
-                const Icon = row.icon;
-                return (
-                  <div key={row.label} className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center flex-shrink-0">
-                      <Icon className="text-navy" size={15} />
+          {/* Profile header + contact details */}
+          <div className="bg-white rounded-2xl border border-grey-border p-6">
+            <div className="flex items-center gap-4 flex-wrap">
+              <div className="w-16 h-16 rounded-full bg-navy/10 flex items-center justify-center flex-shrink-0">
+                <span className="text-xl font-semibold text-navy">{initials}</span>
+              </div>
+              <div className="min-w-0 flex-1">
+                <h2 className="text-lg font-semibold text-navy truncate">{student.name}</h2>
+                <div className="flex items-center gap-2 flex-wrap mt-1.5">
+                  <span className={`text-xs font-medium px-2.5 py-1 rounded-full border ${STATUS_STYLES[status]}`}>
+                    {status}
+                  </span>
+                  {outcome !== 'Pending' && (
+                    <span className={`inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full ${
+                      outcome === 'Proceeding' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                    }`}>
+                      <Lock size={11} />
+                      {outcome}
+                    </span>
+                  )}
+                  {followUpDate && status === 'Follow Up' && (
+                    <span className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-purple-50 text-purple-700">
+                      <Calendar size={11} />
+                      Returns {new Date(followUpDate + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 pt-6 border-t border-grey-border">
+              <div className="flex items-center gap-2 mb-4">
+                <User className="text-navy" size={17} />
+                <h3 className="text-sm font-semibold text-navy">Contact & Application Details</h3>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {detailRows.map((row) => {
+                  const Icon = row.icon;
+                  return (
+                    <div key={row.label} className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-grey-bg flex items-center justify-center flex-shrink-0">
+                        <Icon className="text-navy" size={15} />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs text-gray-400">{row.label}</p>
+                        <p className="text-sm font-medium text-navy truncate">{row.value}</p>
+                      </div>
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-xs text-gray-400">{row.label}</p>
-                      <p className="text-sm font-medium text-navy truncate">{row.value}</p>
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
           </div>
 
           {/* Consultation status */}
-          <div className="px-5 pb-4">
-            <label className="block text-sm font-medium text-navy mb-2">Consultation Status</label>
-            <div className="grid grid-cols-1 gap-2">
+          <div className="bg-white rounded-2xl border border-grey-border p-6">
+            <h3 className="text-sm font-semibold text-navy mb-4">Consultation Status</h3>
+            <div className="grid grid-cols-2 gap-2">
               {STATUS_OPTIONS.map((opt) => (
                 <button
                   key={opt}
                   onClick={() => handleStatusChange(opt)}
                   className={`flex items-center gap-2.5 px-4 py-2.5 rounded-lg border text-sm font-medium transition-all ${
-                    status === opt
-                      ? STATUS_STYLES[opt]
-                      : 'border-grey-border text-gray-500 hover:bg-grey-bg'
+                    status === opt ? STATUS_STYLES[opt] : 'border-grey-border text-gray-500 hover:bg-grey-bg'
                   }`}
                 >
-                  <span className={`w-2 h-2 rounded-full ${status === opt ? 'bg-current' : 'bg-gray-300'}`} />
-                  {opt}
-                  {status === opt && <CheckCircle className="ml-auto" size={16} />}
+                  <span className={`w-2 h-2 rounded-full flex-shrink-0 ${status === opt ? 'bg-current' : 'bg-gray-300'}`} />
+                  <span className="truncate">{opt}</span>
+                  {status === opt && <CheckCircle className="ml-auto flex-shrink-0" size={15} />}
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Consultation notes */}
-          <div className="px-5 pb-4">
-            <label className="block text-sm font-medium text-navy mb-1.5">Consultation Notes</label>
-            <textarea
-              value={notes}
-              onChange={(e) => handleNotesChange(e.target.value)}
-              placeholder="Type your consultation notes here..."
-              rows={5}
-              className="w-full px-4 py-3 border border-grey-border rounded-lg text-sm focus:outline-none focus:border-navy-light focus:ring-1 focus:ring-navy-light transition-colors resize-none"
-            />
-          </div>
-        </div>
-
-        {/* Proceed decision */}
-        {status === 'Consultation Complete' && (
-          <div className="flex-shrink-0 border-t border-grey-border px-5 py-4">
-            <label className="block text-sm font-medium text-navy mb-2">Will the student proceed?</label>
-            {outcome === 'Pending' ? (
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleOutcomeChange('Proceeding')}
-                  className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg border text-sm font-medium transition-colors border-grey-border text-gray-500 hover:bg-grey-bg"
-                >
-                  <Send size={15} />
-                  Proceeding
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleOutcomeChange('Not Proceeding')}
-                  className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg border text-sm font-medium transition-colors border-grey-border text-gray-500 hover:bg-grey-bg"
-                >
-                  <XCircle size={15} />
-                  Not Proceeding
-                </button>
+          {/* Follow-up date — shown when status is Follow Up */}
+          {status === 'Follow Up' && (
+            <div className="bg-white rounded-2xl border border-grey-border p-6">
+              <h3 className="text-sm font-semibold text-navy mb-4">Next Visit Date</h3>
+              <div className="relative">
+                <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
+                <input
+                  type="date"
+                  value={inputDate}
+                  min={new Date().toISOString().split('T')[0]}
+                  onChange={(e) => setInputDate(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 border border-grey-border rounded-lg text-sm focus:outline-none focus:border-navy-light focus:ring-1 focus:ring-navy-light transition-colors"
+                />
               </div>
-            ) : (
-              <div
-                className={`flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg border text-sm font-medium ${
+              {inputDate && (
+                <p className="text-xs text-purple-600 mt-2">
+                  Client returning on {new Date(inputDate + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
+                </p>
+              )}
+              <button
+                type="button"
+                onClick={handleConfirmFollowUp}
+                disabled={!inputDate || inputDate === followUpDate}
+                className="mt-4 w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border text-sm font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-100 enabled:cursor-pointer"
+              >
+                <CheckCircle size={15} />
+                Confirm Follow Up
+              </button>
+            </div>
+          )}
+
+          {/* Outcome decision — shown when Consultation Complete */}
+          {status === 'Consultation Complete' && (
+            <div className="bg-white rounded-2xl border border-grey-border p-6">
+              <h3 className="text-sm font-semibold text-navy mb-4">Will the client proceed?</h3>
+              {outcome === 'Pending' ? (
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => handleOutcomeChange('Proceeding')}
+                    className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-lg border text-sm font-medium transition-colors border-grey-border text-gray-500 hover:bg-green-50 hover:text-green-700 hover:border-green-200"
+                  >
+                    <Send size={15} />
+                    Proceeding
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleOutcomeChange('Not Proceeding')}
+                    className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-lg border text-sm font-medium transition-colors border-grey-border text-gray-500 hover:bg-red-50 hover:text-red-700 hover:border-red-200"
+                  >
+                    <XCircle size={15} />
+                    Not Proceeding
+                  </button>
+                </div>
+              ) : (
+                <div className={`flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-lg border text-sm font-medium ${
                   outcome === 'Proceeding'
                     ? 'bg-green-100 text-green-700 border-green-200'
                     : 'bg-red-100 text-red-700 border-red-200'
-                }`}
-              >
-                {outcome === 'Proceeding' ? <Send size={15} /> : <XCircle size={15} />}
-                {outcome}
-                <Lock size={13} className="ml-auto opacity-60" />
-              </div>
-            )}
-            {outcome === 'Pending' && (
-              <p className="text-xs text-gray-400 mt-2">No decision made yet.</p>
-            )}
-            {outcome === 'Proceeding' && (
-              <p className="text-xs text-green-600 mt-2">Sent to VA Officer. This decision is final and can't be changed.</p>
-            )}
-            {outcome === 'Not Proceeding' && (
-              <p className="text-xs text-gray-500 mt-2">Student will not be moving forward. This decision is final and can't be changed.</p>
-            )}
-          </div>
-        )}
+                }`}>
+                  {outcome === 'Proceeding' ? <Send size={15} /> : <XCircle size={15} />}
+                  {outcome}
+                  <Lock size={13} className="ml-auto opacity-60" />
+                </div>
+              )}
+              <p className="text-xs text-gray-400 mt-2">
+                {outcome === 'Pending' && 'No decision made yet.'}
+                {outcome === 'Proceeding' && 'Sent to VA Officer. This decision is final and can\'t be changed.'}
+                {outcome === 'Not Proceeding' && 'Client will not be moving forward. This decision is final and can\'t be changed.'}
+              </p>
+            </div>
+          )}
+
+        </div>
       </div>
 
-      {/* Success toast */}
+      {/* Toast */}
       {showToast && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] bg-green-600 text-white px-5 py-3 rounded-xl shadow-lg flex items-center gap-2 text-sm font-medium animate-fade-in">
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] bg-green-600 text-white px-5 py-3 rounded-xl shadow-lg flex items-center gap-2 text-sm font-medium">
           <CheckCircle size={18} />
           {toastMessage}
         </div>
