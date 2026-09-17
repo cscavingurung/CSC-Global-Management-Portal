@@ -1,4 +1,4 @@
-import { Role, NavConfig, MockUser, IntakeStudent, Counselor, CounselorStudent, ApplicationRecord, StaffMember, ActivityEntry, Branch, CommissionRecord, Partner, AppNotification } from './types';
+import { Role, NavConfig, IntakeStudent, Counselor, CounselorStudent, ApplicationRecord, StaffMember, StaffRole, ActivityEntry, Branch, CommissionRecord, Partner, AppNotification } from './types';
 
 export const ROLE_LABELS: Record<Role, string> = {
   super_admin: 'Super Admin',
@@ -10,14 +10,17 @@ export const ROLE_LABELS: Record<Role, string> = {
   application_officer: 'Application Officer',
 };
 
-export const MOCK_USERS: Record<Role, MockUser> = {
-  super_admin: { name: 'Rajesh Sharma', role: 'super_admin', branch: 'Head Office', email: 'rajesh@everestvisa.com' },
-  marketing: { name: 'Priya Patel', role: 'marketing', branch: 'Head Office', email: 'priya@everestvisa.com' },
-  finance: { name: 'Amit Kumar', role: 'finance', branch: 'Head Office', email: 'amit@everestvisa.com' },
-  branch_manager: { name: 'Bishal Adhikari', role: 'branch_manager', branch: 'Sydney CBD', email: 'sunita@everestvisa.com' },
-  receptionist: { name: 'Jessica Wong', role: 'receptionist', branch: 'Sydney CBD', email: 'jessica@everestvisa.com' },
-  counselor: { name: 'David Chen', role: 'counselor', branch: 'Parramatta', email: 'david@everestvisa.com' },
-  application_officer: { name: 'Maria Santos', role: 'application_officer', branch: 'Sydney CBD', email: 'maria@everestvisa.com' },
+// Maps a `staff` table row's role (Title Case, as entered in Staff Management) to the
+// app's internal `Role` (snake_case, used for nav/permissions) — used by Login to build a
+// `MockUser` from the `StaffMember` a credential check matches.
+export const STAFF_ROLE_TO_ROLE: Record<StaffRole, Role> = {
+  'Super Admin': 'super_admin',
+  Marketing: 'marketing',
+  Finance: 'finance',
+  'Branch Manager': 'branch_manager',
+  Receptionist: 'receptionist',
+  Counselor: 'counselor',
+  'Application Officer': 'application_officer',
 };
 
 export const NAV_CONFIG: NavConfig = {

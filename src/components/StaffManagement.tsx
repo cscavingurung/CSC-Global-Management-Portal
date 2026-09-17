@@ -1,7 +1,7 @@
-import { useRef, useState, useMemo } from 'react';
+import { useRef, useState, useMemo, useEffect } from 'react';
 import {
   UserPlus, Trash2, Search, X, Mail, Briefcase, Circle,
-  ChevronDown, Lock, Eye, EyeOff,
+  ChevronDown, Lock, Eye, EyeOff, Pencil,
 } from 'lucide-react';
 import { StaffMember, StaffRole, StaffStatus } from '../types';
 import { isValidEmail, PASSWORD_PATTERN } from '../validation';
@@ -21,6 +21,9 @@ const ROLE_STYLES: Record<StaffRole, string> = {
   Counselor: 'bg-green-100 text-green-700',
   'Application Officer': 'bg-navy text-white',
   'Branch Manager': 'bg-purple-100 text-purple-700',
+  'Super Admin': 'bg-red-100 text-red-700',
+  Marketing: 'bg-amber-100 text-amber-700',
+  Finance: 'bg-teal-100 text-teal-700',
 };
 
 
@@ -34,7 +37,26 @@ export default function StaffManagement({ staff, onAddStaff, onUpdateStaff, onRe
   const [newStaff, setNewStaff] = useState({ name: '', email: '', password: '', role: 'Receptionist' as StaffRole, branch: (branches && branches[0]) || 'Sydney CBD', country: COUNTRIES[0] });
   const newStaffEmailRef = useRef<HTMLInputElement>(null);
 
+  const [editingCredentials, setEditingCredentials] = useState(false);
+  const [editEmail, setEditEmail] = useState('');
+  const [editPassword, setEditPassword] = useState('');
+  const [editShowPassword, setEditShowPassword] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+  const editEmailRef = useRef<HTMLInputElement>(null);
+
   const selectedStaff = staff.find((s) => s.id === selectedStaffId) ?? null;
+
+  // Reset the credentials editor whenever a different staff member is opened (or the panel
+  // closes) — intentionally keyed on the id alone, not selectedStaff.email, so it doesn't
+  // re-fire (and wipe in-progress edits) on every keystroke while editing.
+  useEffect(() => {
+    setEditingCredentials(false);
+    setEditEmail(selectedStaff?.email ?? '');
+    setEditPassword('');
+    setEditShowPassword(false);
+    setEditError(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedStaffId]);
 
   const filtered = useMemo(() => {
     return staff.filter((s) => {
@@ -68,6 +90,33 @@ export default function StaffManagement({ staff, onAddStaff, onUpdateStaff, onRe
     setNewStaff({ name: '', email: '', password: '', role: 'Receptionist', branch: (branches && branches[0]) || 'Sydney CBD', country: COUNTRIES[0] });
     setShowPassword(false);
     setShowAddForm(false);
+  };
+
+  const handleSaveCredentials = () => {
+    if (!selectedStaff) return;
+    if (!isValidEmail(editEmail)) {
+      editEmailRef.current?.setCustomValidity('Enter a valid email address, e.g. name@everestvisa.com');
+      editEmailRef.current?.reportValidity();
+      return;
+    }
+    const emailTaken = staff.some(
+      (s) => s.id !== selectedStaff.id && s.email.trim().toLowerCase() === editEmail.trim().toLowerCase()
+    );
+    if (emailTaken) {
+      setEditError('Another staff member already uses this email.');
+      return;
+    }
+    if (editPassword && !new RegExp(`^${PASSWORD_PATTERN}$`).test(editPassword)) {
+      setEditError('Password must be 9–15 characters, with at least one letter and one number.');
+      return;
+    }
+    onUpdateStaff(selectedStaff.id, {
+      email: editEmail.trim(),
+      ...(editPassword ? { password: editPassword } : {}),
+    });
+    setEditingCredentials(false);
+    setEditPassword('');
+    setEditError(null);
   };
 
   const handleConfirmRemove = () => {
@@ -446,6 +495,93 @@ export default function StaffManagement({ staff, onAddStaff, onUpdateStaff, onRe
                     <p className="text-sm font-medium text-navy">{selectedStaff.branch}</p>
                   </div>
                 </div>
+              </div>
+
+              {/* Login credentials */}
+              <div className="mt-5">
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-sm font-medium text-navy">Login Credentials</label>
+                  {!editingCredentials && (
+                    <button
+                      type="button"
+                      onClick={() => setEditingCredentials(true)}
+                      className="inline-flex items-center gap-1 text-xs font-medium text-navy-light hover:text-navy transition-colors"
+                    >
+                      <Pencil size={12} />
+                      Edit
+                    </button>
+                  )}
+                </div>
+                {editingCredentials ? (
+                  <div className="space-y-3 bg-grey-bg rounded-xl p-4">
+                    <div>
+                      <label className="block text-xs font-medium text-navy mb-1">Email (Login ID)</label>
+                      <div className="relative">
+                        <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        <input
+                          ref={editEmailRef}
+                          type="email"
+                          value={editEmail}
+                          onChange={(e) => {
+                            setEditEmail(e.target.value);
+                            e.target.setCustomValidity('');
+                            setEditError(null);
+                          }}
+                          className="w-full pl-10 pr-4 py-2 border border-grey-border rounded-lg text-sm bg-white focus:outline-none focus:border-navy-light focus:ring-1 focus:ring-navy-light transition-colors"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-navy mb-1">New Password</label>
+                      <div className="relative">
+                        <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        <input
+                          type={editShowPassword ? 'text' : 'password'}
+                          maxLength={15}
+                          value={editPassword}
+                          onChange={(e) => {
+                            setEditPassword(e.target.value);
+                            setEditError(null);
+                          }}
+                          placeholder="Leave blank to keep current password"
+                          className="w-full pl-10 pr-10 py-2 border border-grey-border rounded-lg text-sm bg-white focus:outline-none focus:border-navy-light focus:ring-1 focus:ring-navy-light transition-colors"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setEditShowPassword(!editShowPassword)}
+                          className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-navy transition-colors"
+                        >
+                          {editShowPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                      <p className="text-xs text-gray-400 mt-1">9–15 characters, with at least one letter and one number.</p>
+                    </div>
+                    {editError && <p className="text-xs text-red-600">{editError}</p>}
+                    <div className="flex gap-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingCredentials(false);
+                          setEditEmail(selectedStaff.email);
+                          setEditPassword('');
+                          setEditError(null);
+                        }}
+                        className="flex-1 py-2 border border-grey-border rounded-lg text-xs font-medium text-navy hover:bg-white transition-colors"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleSaveCredentials}
+                        className="flex-1 py-2 bg-navy text-white rounded-lg text-xs font-semibold hover:bg-navy-light transition-colors"
+                      >
+                        Save
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-xs text-gray-400">Editable by Super Admin or Branch Manager only.</p>
+                )}
               </div>
 
               {/* Status control */}

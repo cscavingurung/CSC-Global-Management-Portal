@@ -89,7 +89,14 @@ export interface ApplicationRecord {
   branch: string;
 }
 
-export type StaffRole = 'Receptionist' | 'Counselor' | 'Application Officer' | 'Branch Manager';
+export type StaffRole =
+  | 'Receptionist'
+  | 'Counselor'
+  | 'Application Officer'
+  | 'Branch Manager'
+  | 'Super Admin'
+  | 'Marketing'
+  | 'Finance';
 export type StaffStatus = 'Active' | 'Inactive';
 
 export interface StaffMember {

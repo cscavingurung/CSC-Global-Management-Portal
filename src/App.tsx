@@ -381,7 +381,7 @@ export default function App() {
   }
 
   if (!user) {
-    return <Login onLogin={handleLogin} />;
+    return <Login staff={staff} onLogin={handleLogin} />;
   }
 
   const navItems = NAV_CONFIG[user.role];

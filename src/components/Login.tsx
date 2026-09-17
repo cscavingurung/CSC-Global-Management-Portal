@@ -1,25 +1,24 @@
 import { useRef, useState } from 'react';
-import { Lock, Mail, ChevronDown, Eye, EyeOff } from 'lucide-react';
-import { Role, MockUser } from '../types';
-import { ROLE_LABELS, MOCK_USERS } from '../mockData';
+import { Lock, Mail, Eye, EyeOff } from 'lucide-react';
+import { MockUser, StaffMember } from '../types';
+import { STAFF_ROLE_TO_ROLE } from '../mockData';
 import { isValidEmail, PASSWORD_PATTERN } from '../validation';
 
 interface LoginProps {
+  staff: StaffMember[];
   onLogin: (user: MockUser) => void;
 }
 
-export default function Login({ onLogin }: LoginProps) {
+export default function Login({ staff, onLogin }: LoginProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [selectedRole, setSelectedRole] = useState<Role>('super_admin');
   const [showPassword, setShowPassword] = useState(false);
-  const [roleDropdownOpen, setRoleDropdownOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const emailRef = useRef<HTMLInputElement>(null);
-
-  const roles = Object.keys(ROLE_LABELS) as Role[];
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
     // type="email" only rejects grossly malformed values (e.g. missing "@") — it does not
     // enforce `pattern` — so the stricter email shape is checked here instead.
     if (!isValidEmail(email)) {
@@ -27,7 +26,18 @@ export default function Login({ onLogin }: LoginProps) {
       emailRef.current?.reportValidity();
       return;
     }
-    onLogin(MOCK_USERS[selectedRole]);
+
+    const match = staff.find((s) => s.email.trim().toLowerCase() === email.trim().toLowerCase());
+    if (!match || match.password !== password) {
+      setError('Invalid email or password.');
+      return;
+    }
+    if (match.status !== 'Active') {
+      setError('This account has been deactivated. Contact your administrator.');
+      return;
+    }
+
+    onLogin({ name: match.name, role: STAFF_ROLE_TO_ROLE[match.role], branch: match.branch, email: match.email });
   };
 
   return (
@@ -44,49 +54,9 @@ export default function Login({ onLogin }: LoginProps) {
         {/* Login card */}
         <div className="bg-white rounded-2xl p-8 shadow-xl">
           <h2 className="text-xl font-semibold text-navy mb-1">Sign in</h2>
-          <p className="text-sm text-gray-500 mb-6">Enter your credentials to access the portal.</p>
+          <p className="text-sm text-gray-500 mb-6">Enter the credentials issued to you by your Branch Manager or Super Admin.</p>
 
           <form onSubmit={handleSubmit} className="space-y-5">
-              {/* Role selector */}
-            <div>
-              <label className="block text-sm font-medium text-navy mb-1.5">Role</label>
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => setRoleDropdownOpen(!roleDropdownOpen)}
-                  className="w-full flex items-center justify-between pl-4 pr-3 py-2.5 border border-grey-border rounded-lg text-sm focus:outline-none focus:border-navy-light focus:ring-1 focus:ring-navy-light transition-colors"
-                >
-                  <span className="text-navy font-medium">{ROLE_LABELS[selectedRole]}</span>
-                  <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${roleDropdownOpen ? 'rotate-180' : ''}`} />
-                </button>
-                {roleDropdownOpen && (
-                  <>
-                    <div className="fixed inset-0 z-10" onClick={() => setRoleDropdownOpen(false)} />
-                    <div className="absolute z-20 mt-1 w-full bg-white border border-grey-border rounded-lg shadow-lg overflow-hidden max-h-64 overflow-y-auto">
-                      {roles.map((role) => (
-                        <button
-                          key={role}
-                          type="button"
-                          onClick={() => {
-                            setSelectedRole(role);
-                            setRoleDropdownOpen(false);
-                          }}
-                          className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${
-                            role === selectedRole
-                              ? 'bg-navy text-white font-medium'
-                              : 'text-navy hover:bg-grey-bg'
-                          }`}
-                        >
-                          {ROLE_LABELS[role]}
-                        </button>
-                      ))}
-                    </div>
-                  </>
-                )}
-              </div>
-             
-            </div>
-            
             {/* Email */}
             <div>
               <label className="block text-sm font-medium text-navy mb-1.5">Email</label>
@@ -100,6 +70,7 @@ export default function Login({ onLogin }: LoginProps) {
                   onChange={(e) => {
                     setEmail(e.target.value);
                     e.target.setCustomValidity('');
+                    setError(null);
                   }}
                   placeholder="you@everestvisa.com"
                   className="w-full pl-10 pr-4 py-2.5 border border-grey-border rounded-lg text-sm focus:outline-none focus:border-navy-light focus:ring-1 focus:ring-navy-light transition-colors"
@@ -119,7 +90,10 @@ export default function Login({ onLogin }: LoginProps) {
                   maxLength={15}
                   title="More than 8 and fewer than 16 characters, including a letter and a number"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    setError(null);
+                  }}
                   placeholder="Enter password"
                   className="w-full pl-10 pr-10 py-2.5 border border-grey-border rounded-lg text-sm focus:outline-none focus:border-navy-light focus:ring-1 focus:ring-navy-light transition-colors"
                 />
@@ -133,6 +107,10 @@ export default function Login({ onLogin }: LoginProps) {
               </div>
               <p className="text-xs text-gray-400 mt-1.5">9–15 characters, with at least one letter and one number.</p>
             </div>
+
+            {error && (
+              <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">{error}</p>
+            )}
 
             {/* Submit */}
             <button
