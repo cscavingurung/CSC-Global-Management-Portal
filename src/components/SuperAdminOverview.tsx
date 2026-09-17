@@ -1,20 +1,19 @@
 import { useMemo, useState } from 'react';
 import {
-  GraduationCap, CalendarDays, FileText, CheckCircle, TrendingUp,
+  GraduationCap, CalendarDays, FileText, CheckCircle,
   ArrowUp, ArrowDown, ArrowUpDown, UserX, FileClock, TrendingDown, type LucideIcon,
 } from 'lucide-react';
-import { ApplicationStatus, Branch, IntakeStudent, ApplicationRecord, StaffMember } from '../types';
+import { ApplicationStatus, Branch, IntakeStudent, CounselorStudent, ApplicationRecord, StaffMember } from '../types';
 import { parseSubmittedAt } from '../dateTime';
 import { daysInCurrentStatus, latestStatusHistoryDate } from '../applicationHistory';
-import { computeBranchLiveStats } from '../branchLiveStats';
-import type { AggregatedBranchStats } from '../lib/branchOverviewApi';
+import { computeBranchLiveStats, computeCompanyOverviewStats } from '../branchLiveStats';
 
 interface SuperAdminOverviewProps {
   branches: Branch[];
   staff: StaffMember[];
   students: IntakeStudent[];
+  counselorStudents: CounselorStudent[];
   applications: ApplicationRecord[];
-  stats: AggregatedBranchStats;
 }
 
 const STALE_STUDENT_HOURS = 24;
@@ -44,9 +43,14 @@ function successRateOf(granted: number, refused: number): number {
   return granted + refused > 0 ? (granted / (granted + refused)) * 100 : 0;
 }
 
-export default function SuperAdminOverview({ branches, staff, students, applications, stats }: SuperAdminOverviewProps) {
+export default function SuperAdminOverview({ branches, staff, students, counselorStudents, applications }: SuperAdminOverviewProps) {
   const [sortKey, setSortKey] = useState<SortKey>('activeStudents');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+
+  const stats = useMemo(
+    () => computeCompanyOverviewStats(students, counselorStudents, applications),
+    [students, counselorStudents, applications]
+  );
 
   const handleSort = (key: SortKey) => {
     if (key === sortKey) {
@@ -183,10 +187,10 @@ export default function SuperAdminOverview({ branches, staff, students, applicat
 
   const decidedTotal = stats.decidedGranted + stats.decidedRefused;
 
-  const statCards: { key: string; icon: LucideIcon; value: number; label: string; trend: string; trendUp: boolean }[] = [
-    { key: 'total-students', icon: GraduationCap, value: stats.totalStudents.value, label: 'Total Students This Month', trend: stats.totalStudents.trend, trendUp: stats.totalStudents.trendUp },
-    { key: 'active-consultations', icon: CalendarDays, value: stats.activeConsultations.value, label: 'Active Consultations', trend: stats.activeConsultations.trend, trendUp: stats.activeConsultations.trendUp },
-    { key: 'applications-in-progress', icon: FileText, value: stats.applicationsInProgress.value, label: 'Applications In Progress', trend: stats.applicationsInProgress.trend, trendUp: stats.applicationsInProgress.trendUp },
+  const statCards: { key: string; icon: LucideIcon; value: number; label: string }[] = [
+    { key: 'total-students', icon: GraduationCap, value: stats.totalStudentsThisMonth, label: 'Total Students This Month' },
+    { key: 'active-consultations', icon: CalendarDays, value: stats.activeConsultations, label: 'Active Consultations' },
+    { key: 'applications-in-progress', icon: FileText, value: stats.applicationsInProgress, label: 'Applications In Progress' },
   ];
 
   const columns: { key: SortKey; label: string; align: 'left' | 'right' }[] = [
@@ -224,15 +228,9 @@ export default function SuperAdminOverview({ branches, staff, students, applicat
                 <div className="w-11 h-11 rounded-lg bg-navy/5 flex items-center justify-center">
                   <Icon className="text-navy" size={22} />
                 </div>
-                <div className={`flex items-center gap-1 text-xs font-medium ${stat.trendUp ? 'text-green-600' : 'text-orange-600'}`}>
-                  {stat.trendUp ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
-                </div>
               </div>
               <p className="text-3xl font-bold text-navy">{stat.value}</p>
               <p className="text-sm text-gray-500 mt-1">{stat.label}</p>
-              <p className={`text-xs mt-2 ${stat.trendUp ? 'text-green-600' : 'text-orange-600'}`}>
-                {stat.trend}
-              </p>
             </div>
           );
         })}

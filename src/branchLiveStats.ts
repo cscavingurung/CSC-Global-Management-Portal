@@ -67,3 +67,29 @@ export function computeBranchOverviewStats(
     decidedRefused: branchApplications.filter((a) => a.status === 'Refused').length,
   };
 }
+
+// Company-wide version of computeBranchOverviewStats, for the Super Admin Overview's four
+// stat cards — replaces the seeded, never-updated `branch_stats` aggregate. No branch
+// filtering needed (unlike the per-branch version) since every real row already belongs to
+// some real branch under real login, so summing across everything is the company total.
+export function computeCompanyOverviewStats(
+  students: IntakeStudent[],
+  counselorStudents: CounselorStudent[],
+  applications: ApplicationRecord[]
+): BranchOverviewStats {
+  const now = new Date();
+  const totalStudentsThisMonth = students.filter((s) => {
+    const submitted = parseSubmittedAt(s.submittedAt);
+    return !!submitted && submitted.getFullYear() === now.getFullYear() && submitted.getMonth() === now.getMonth();
+  }).length;
+
+  const activeConsultations = counselorStudents.filter((cs) => cs.consultationStatus !== 'Consultation Complete').length;
+
+  return {
+    totalStudentsThisMonth,
+    activeConsultations,
+    applicationsInProgress: applications.filter((a) => a.status === 'Preparation' || a.status === 'Lodgement').length,
+    decidedGranted: applications.filter((a) => a.status === 'Success').length,
+    decidedRefused: applications.filter((a) => a.status === 'Refused').length,
+  };
+}

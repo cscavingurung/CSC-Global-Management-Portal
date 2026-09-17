@@ -33,7 +33,6 @@ import { fetchStudents, insertStudent, updateStudent } from './lib/studentsApi';
 import { fetchCounselors, insertCounselor, updateCounselor, deleteCounselor } from './lib/counselorsApi';
 import { fetchApplications, updateApplication, insertApplication } from './lib/applicationsApi';
 import { fetchStaff, insertStaff, updateStaff, deleteStaff } from './lib/staffApi';
-import { fetchAggregatedBranchStats, DEFAULT_AGGREGATED_BRANCH_STATS, type AggregatedBranchStats } from './lib/branchOverviewApi';
 import { fetchBranches, insertBranch, updateBranch, deleteBranch } from './lib/branchesApi';
 import { subscribeToTable } from './lib/realtimeSubscribe';
 
@@ -51,7 +50,6 @@ export default function App() {
   const [commissions, setCommissions] = useState<CommissionRecord[]>(MOCK_COMMISSIONS);
   const [partners, setPartners] = useState<Partner[]>(MOCK_PARTNERS);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
-  const [companyStats, setCompanyStats] = useState<AggregatedBranchStats>(DEFAULT_AGGREGATED_BRANCH_STATS);
 
   useEffect(() => {
     const load = () =>
@@ -115,16 +113,6 @@ export default function App() {
     load();
     return subscribeToTable('notifications', load);
   }, []);
-
-  useEffect(() => {
-    const branchNames = branches.map((b) => b.name);
-    const load = () =>
-      fetchAggregatedBranchStats(branchNames)
-        .then(setCompanyStats)
-        .catch((err) => console.error('Failed to load aggregated branch_stats from Supabase', err));
-    load();
-    return subscribeToTable('branch_stats', load);
-  }, [branches]);
 
   const handleLogin = (mockUser: MockUser) => {
     setUser(mockUser);
@@ -395,8 +383,8 @@ export default function App() {
             branches={branches}
             staff={staff}
             students={students}
+            counselorStudents={counselorStudents}
             applications={applications}
-            stats={companyStats}
           />
         );
       if (user.role === 'branch_manager')
