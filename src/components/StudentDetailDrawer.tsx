@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import {
   X, User, Phone, Mail, Globe, Target, CalendarDays,
-  Send, CheckCircle, XCircle, ClipboardList,
+  Send, CheckCircle, XCircle, ClipboardList, Lock,
+  Cake, Users, Heart, GraduationCap, Languages, Briefcase,
 } from 'lucide-react';
 import { CounselorStudent, ConsultationStatus, ConsultationOutcome } from '../types';
 
@@ -11,11 +12,12 @@ interface StudentDetailDrawerProps {
   onUpdate: (updates: Partial<CounselorStudent>) => void;
 }
 
-const STATUS_OPTIONS: ConsultationStatus[] = ['Awaiting Consultation', 'In Progress', 'Consultation Complete'];
+const STATUS_OPTIONS: ConsultationStatus[] = ['Awaiting Consultation', 'In Progress', 'Follow Up', 'Consultation Complete'];
 
 const STATUS_STYLES: Record<ConsultationStatus, string> = {
   'Awaiting Consultation': 'bg-orange-100 text-orange-700 border-orange-200',
   'In Progress': 'bg-blue-100 text-blue-700 border-blue-200',
+  'Follow Up': 'bg-purple-100 text-purple-700 border-purple-200',
   'Consultation Complete': 'bg-green-100 text-green-700 border-green-200',
 };
 
@@ -56,10 +58,13 @@ export default function StudentDetailDrawer({ student, onClose, onUpdate }: Stud
   };
 
   const handleOutcomeChange = (newOutcome: ConsultationOutcome) => {
+    // Once a decision is made, it's final — the record moves to Enrolled (Proceeding) or
+    // Archive (Not Proceeding) and can't be reversed from here.
+    if (outcome !== 'Pending') return;
     setOutcome(newOutcome);
     onUpdate({ outcome: newOutcome });
     if (newOutcome === 'Proceeding') {
-      setToastMessage('Sent to Application Officer');
+      setToastMessage('Sent to VA Officer');
       setShowToast(true);
     } else if (newOutcome === 'Not Proceeding') {
       setToastMessage('Marked as not proceeding');
@@ -67,12 +72,19 @@ export default function StudentDetailDrawer({ student, onClose, onUpdate }: Stud
     }
   };
 
+  // Same field set (and order) as the Leads intake form — see NewIntakeForm.tsx.
   const detailRows = [
     { icon: User, label: 'Name', value: student.name },
     { icon: Phone, label: 'Phone', value: student.phone },
     { icon: Mail, label: 'Email', value: student.email },
     { icon: Globe, label: 'Country of Interest', value: student.country },
     { icon: Target, label: 'Purpose', value: student.purpose },
+    { icon: Cake, label: 'Date of Birth', value: student.dob },
+    { icon: Users, label: 'Gender', value: student.gender },
+    { icon: Heart, label: 'Marital Status', value: student.maritalStatus },
+    { icon: GraduationCap, label: 'Academic Qualification', value: student.academicQualification },
+    { icon: Languages, label: 'IELTS/PTE', value: student.ieltsPte },
+    { icon: Briefcase, label: 'Work Experience', value: student.workExperience },
     { icon: CalendarDays, label: 'Submitted', value: student.submittedAt },
     { icon: CalendarDays, label: 'Assigned', value: student.assignedDate },
   ];
@@ -88,7 +100,7 @@ export default function StudentDetailDrawer({ student, onClose, onUpdate }: Stud
         <div className="flex items-center justify-between px-5 py-4 border-b border-grey-border flex-shrink-0">
           <div className="flex items-center gap-2">
             <ClipboardList className="text-navy" size={20} />
-            <h2 className="text-base font-semibold text-navy">Student Details</h2>
+            <h2 className="text-base font-semibold text-navy">Client Details</h2>
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-navy transition-colors">
             <X size={20} />
@@ -156,40 +168,46 @@ export default function StudentDetailDrawer({ student, onClose, onUpdate }: Stud
         {status === 'Consultation Complete' && (
           <div className="flex-shrink-0 border-t border-grey-border px-5 py-4">
             <label className="block text-sm font-medium text-navy mb-2">Will the student proceed?</label>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => handleOutcomeChange('Proceeding')}
-                className={`flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg border text-sm font-medium transition-colors ${
+            {outcome === 'Pending' ? (
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleOutcomeChange('Proceeding')}
+                  className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg border text-sm font-medium transition-colors border-grey-border text-gray-500 hover:bg-grey-bg"
+                >
+                  <Send size={15} />
+                  Proceeding
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleOutcomeChange('Not Proceeding')}
+                  className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg border text-sm font-medium transition-colors border-grey-border text-gray-500 hover:bg-grey-bg"
+                >
+                  <XCircle size={15} />
+                  Not Proceeding
+                </button>
+              </div>
+            ) : (
+              <div
+                className={`flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg border text-sm font-medium ${
                   outcome === 'Proceeding'
                     ? 'bg-green-100 text-green-700 border-green-200'
-                    : 'border-grey-border text-gray-500 hover:bg-grey-bg'
+                    : 'bg-red-100 text-red-700 border-red-200'
                 }`}
               >
-                <Send size={15} />
-                Proceeding
-              </button>
-              <button
-                type="button"
-                onClick={() => handleOutcomeChange('Not Proceeding')}
-                className={`flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg border text-sm font-medium transition-colors ${
-                  outcome === 'Not Proceeding'
-                    ? 'bg-red-100 text-red-700 border-red-200'
-                    : 'border-grey-border text-gray-500 hover:bg-grey-bg'
-                }`}
-              >
-                <XCircle size={15} />
-                Not Proceeding
-              </button>
-            </div>
+                {outcome === 'Proceeding' ? <Send size={15} /> : <XCircle size={15} />}
+                {outcome}
+                <Lock size={13} className="ml-auto opacity-60" />
+              </div>
+            )}
             {outcome === 'Pending' && (
               <p className="text-xs text-gray-400 mt-2">No decision made yet.</p>
             )}
             {outcome === 'Proceeding' && (
-              <p className="text-xs text-green-600 mt-2">Sent to Application Officer.</p>
+              <p className="text-xs text-green-600 mt-2">Sent to VA Officer. This decision is final and can't be changed.</p>
             )}
             {outcome === 'Not Proceeding' && (
-              <p className="text-xs text-gray-500 mt-2">Student will not be moving forward.</p>
+              <p className="text-xs text-gray-500 mt-2">Student will not be moving forward. This decision is final and can't be changed.</p>
             )}
           </div>
         )}

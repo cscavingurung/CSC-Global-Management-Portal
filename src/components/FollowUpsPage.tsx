@@ -1,32 +1,26 @@
 import { useState, useMemo } from 'react';
-import { Search, X, ChevronRight } from 'lucide-react';
+import { Search, X, ChevronRight, PhoneCall } from 'lucide-react';
 import { CounselorStudent } from '../types';
-import StudentDetailDrawer from './StudentDetailDrawer';
+import StudentProfile from './StudentProfile';
 import DateRangeFilter from './DateRangeFilter';
 import { matchesDateRange } from '../dateFilter';
 
-interface MyStudentsProps {
+interface FollowUpsPageProps {
   students: CounselorStudent[];
   onUpdateStudent: (id: string, updates: Partial<CounselorStudent>) => void;
 }
 
-export default function MyStudents({ students, onUpdateStudent }: MyStudentsProps) {
+export default function FollowUpsPage({ students, onUpdateStudent }: FollowUpsPageProps) {
   const [search, setSearch] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [selectedStudent, setSelectedStudent] = useState<CounselorStudent | null>(null);
 
-  // Assigned Clients is the "newly assigned, not yet started" queue — once a counselor
-  // moves a client past this status (In Progress / Follow Up / Consultation Complete), they
-  // fall out of this list and show up in Follow Ups / Enrolled / Archive instead.
-  const filtered = useMemo(() => {
+  const followUps = useMemo(() => {
     return students
-      .filter((s) => s.consultationStatus === 'Awaiting Consultation')
-      .filter((s) => {
-        const matchesSearch = s.name.toLowerCase().includes(search.toLowerCase());
-        const matchesDate = matchesDateRange(s.assignedDate, dateFrom, dateTo);
-        return matchesSearch && matchesDate;
-      });
+      .filter((s) => s.consultationStatus === 'Follow Up')
+      .filter((s) => s.name.toLowerCase().includes(search.toLowerCase()))
+      .filter((s) => matchesDateRange(s.assignedDate, dateFrom, dateTo));
   }, [students, search, dateFrom, dateTo]);
 
   return (
@@ -51,8 +45,13 @@ export default function MyStudents({ students, onUpdateStudent }: MyStudentsProp
             </button>
           )}
         </div>
-
         <DateRangeFilter from={dateFrom} to={dateTo} onFromChange={setDateFrom} onToChange={setDateTo} />
+      </div>
+
+      {/* Summary */}
+      <div className="flex items-center gap-2 text-sm text-gray-500">
+        <PhoneCall size={16} className="text-navy" />
+        <span>{followUps.length} client{followUps.length !== 1 ? 's' : ''} needing follow-up</span>
       </div>
 
       {/* Table — desktop */}
@@ -69,7 +68,7 @@ export default function MyStudents({ students, onUpdateStudent }: MyStudentsProp
             </tr>
           </thead>
           <tbody>
-            {filtered.map((s) => (
+            {followUps.map((s) => (
               <tr
                 key={s.id}
                 onClick={() => setSelectedStudent(s)}
@@ -90,14 +89,14 @@ export default function MyStudents({ students, onUpdateStudent }: MyStudentsProp
             ))}
           </tbody>
         </table>
-        {filtered.length === 0 && (
-          <div className="py-12 text-center text-sm text-gray-400">No students found.</div>
+        {followUps.length === 0 && (
+          <div className="py-12 text-center text-sm text-gray-400">No clients need follow-up right now.</div>
         )}
       </div>
 
       {/* Card list — mobile */}
       <div className="lg:hidden space-y-3">
-        {filtered.map((s) => (
+        {followUps.map((s) => (
           <button
             key={s.id}
             onClick={() => setSelectedStudent(s)}
@@ -108,8 +107,8 @@ export default function MyStudents({ students, onUpdateStudent }: MyStudentsProp
                 <p className="text-sm font-semibold text-navy">{s.name}</p>
                 <p className="text-xs text-gray-400">{s.email}</p>
               </div>
-              <span className="text-xs font-medium px-2.5 py-1 rounded-full flex-shrink-0 ml-2 bg-orange-100 text-orange-700">
-                New
+              <span className="text-xs font-medium px-2.5 py-1 rounded-full flex-shrink-0 ml-2 bg-purple-100 text-purple-700">
+                Follow Up
               </span>
             </div>
             <div className="grid grid-cols-2 gap-2 text-xs text-gray-500 mb-3">
@@ -124,14 +123,14 @@ export default function MyStudents({ students, onUpdateStudent }: MyStudentsProp
             </div>
           </button>
         ))}
-        {filtered.length === 0 && (
-          <div className="py-12 text-center text-sm text-gray-400">No students found.</div>
+        {followUps.length === 0 && (
+          <div className="py-12 text-center text-sm text-gray-400">No clients need follow-up right now.</div>
         )}
       </div>
 
       {/* Detail drawer */}
       {selectedStudent && (
-        <StudentDetailDrawer
+        <StudentProfile
           student={selectedStudent}
           onClose={() => setSelectedStudent(null)}
           onUpdate={(updates) => {

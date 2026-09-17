@@ -19,6 +19,8 @@ import ConsultationsPage from './components/ConsultationsPage';
 import ApplicationsList from './components/ApplicationsList';
 import StatusUpdatesKanban from './components/StatusUpdatesKanban';
 import StaffManagement from './components/StaffManagement';
+import ArchivePage from './components/ArchivePage';
+import FollowUpsPage from './components/FollowUpsPage';
 import ReportsPage from './components/ReportsPage';
 import { MockUser, IntakeStudent, CounselorStudent, ApplicationRecord, StaffMember, Branch, CommissionRecord, Partner, AppNotification, Counselor } from './types';
 import {
@@ -172,6 +174,12 @@ export default function App() {
         email: student.email,
         country: student.country,
         purpose: student.purpose,
+        dob: student.dob,
+        gender: student.gender,
+        maritalStatus: student.maritalStatus,
+        academicQualification: student.academicQualification,
+        ieltsPte: student.ieltsPte,
+        workExperience: student.workExperience,
         submittedAt: student.submittedAt,
         assignedDate: new Date().toISOString().slice(0, 10),
         assignedCounselor: counselorName,
@@ -355,12 +363,41 @@ export default function App() {
     );
   }, [staff, user]);
 
+  // Every non-Super-Admin role's Students/Applications/Assign Counselor pages are scoped to
+  // their own branch — StudentList and ApplicationsList only render a branch filter dropdown
+  // for Super Admin (showBranchFilter), so without pre-filtering here a Branch Manager,
+  // Receptionist or VA Officer would see every branch's data.
+  const branchStudents = useMemo(() => {
+    if (!user || user.role === 'super_admin') return students;
+    return students.filter((s) => s.branch === user.branch);
+  }, [students, user]);
+
+  const branchApplications = useMemo(() => {
+    if (!user || user.role === 'super_admin') return applications;
+    return applications.filter((a) => a.branch === user.branch);
+  }, [applications, user]);
+
+  // Counselor rows carry no `branch` of their own — resolved via their staff record
+  // (matched by name), same technique used in computeBranchOverviewStats.
+  const branchCounselors = useMemo(() => {
+    if (!user || user.role === 'super_admin') return counselors;
+    const counselorBranchByName = new Map(staff.filter((s) => s.role === 'Counselor').map((s) => [s.name, s.branch]));
+    return counselors.filter((c) => counselorBranchByName.get(c.name) === user.branch);
+  }, [counselors, staff, user]);
+
   const upcomingConsultations = useMemo(() => {
     const pending = counselorStudents.filter((s) => s.consultationStatus !== 'Consultation Complete');
     if (user?.role === 'counselor') {
       return pending.filter((s) => s.assignedCounselor === user.name);
     }
     return pending;
+  }, [counselorStudents, user]);
+
+  // A counselor's Assigned Clients/Enrolled/Archive pages are scoped to their own clients —
+  // without this, App.tsx would hand every counselor's full counselor_students list down.
+  const myCounselorStudents = useMemo(() => {
+    if (!user || user.role !== 'counselor') return counselorStudents;
+    return counselorStudents.filter((s) => s.assignedCounselor === user.name);
   }, [counselorStudents, user]);
 
   if (isIntakeForm) {
@@ -391,10 +428,10 @@ export default function App() {
         return (
           <BranchManagerOverview
             branch={user.branch}
-            students={students}
+            students={branchStudents}
             counselorStudents={counselorStudents}
-            applications={applications}
-            counselors={counselors}
+            applications={branchApplications}
+            counselors={branchCounselors}
             staff={staff}
             notifications={notifications}
           />
@@ -402,9 +439,9 @@ export default function App() {
       if (user.role === 'receptionist')
         return (
           <ReceptionistOverview
-            students={students}
+            students={branchStudents}
             upcomingConsultations={upcomingConsultations}
-            counselors={counselors}
+            counselors={branchCounselors}
           />
         );
       if (user.role === 'counselor')
@@ -435,15 +472,15 @@ export default function App() {
     if (activeKey === 'students')
       return (
         <StudentList
-          students={students}
-          counselors={counselors}
+          students={branchStudents}
+          counselors={branchCounselors}
           onAssign={handleAssign}
           branches={branchNames}
           showBranchFilter={isSuperAdmin}
         />
       );
     if (activeKey === 'assign-counselor')
-      return <AssignCounselorPage students={students} counselors={counselors} onAssign={handleAssign} />;
+      return <AssignCounselorPage students={branchStudents} counselors={branchCounselors} onAssign={handleAssign} />;
     if (activeKey === 'partners')
       return (
         <PartnersPage
@@ -454,20 +491,24 @@ export default function App() {
         />
       );
     if (activeKey === 'my-students')
-      return <MyStudents students={counselorStudents} onUpdateStudent={handleUpdateCounselorStudent} />;
+      return <MyStudents students={myCounselorStudents} onUpdateStudent={handleUpdateCounselorStudent} />;
     if (activeKey === 'consultations')
-      return <ConsultationsPage students={counselorStudents} onUpdateStudent={handleUpdateCounselorStudent} />;
+      return <ConsultationsPage students={myCounselorStudents} onUpdateStudent={handleUpdateCounselorStudent} />;
+    if (activeKey === 'follow-ups')
+      return <FollowUpsPage students={myCounselorStudents} onUpdateStudent={handleUpdateCounselorStudent} />;
+    if (activeKey === 'archive')
+      return <ArchivePage students={myCounselorStudents} onUpdateStudent={handleUpdateCounselorStudent} />;
     if (activeKey === 'applications')
       return (
         <ApplicationsList
-          applications={applications}
+          applications={branchApplications}
           onUpdateApplication={handleUpdateApplication}
           branches={branchNames}
           showBranchFilter={isSuperAdmin}
         />
       );
     if (activeKey === 'status-updates')
-      return <StatusUpdatesKanban applications={applications} onUpdateApplication={handleUpdateApplication} />;
+      return <StatusUpdatesKanban applications={branchApplications} onUpdateApplication={handleUpdateApplication} />;
     if (activeKey === 'commissions')
       return (
         <CommissionsPage

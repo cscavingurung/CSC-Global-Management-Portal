@@ -21,7 +21,7 @@ interface StaffManagementProps {
 const ROLE_STYLES: Record<StaffRole, string> = {
   Receptionist: 'bg-blue-100 text-blue-700',
   Counselor: 'bg-green-100 text-green-700',
-  'Application Officer': 'bg-navy text-white',
+  'VA Officer': 'bg-navy text-white',
   'Branch Manager': 'bg-purple-100 text-purple-700',
   'Super Admin': 'bg-red-100 text-red-700',
   Marketing: 'bg-amber-100 text-amber-700',
@@ -389,7 +389,7 @@ export default function StaffManagement({ staff, onAddStaff, onUpdateStaff, onRe
                   >
                     <option value="Receptionist">Receptionist</option>
                     <option value="Counselor">Counselor</option>
-                    <option value="Application Officer">Application Officer</option>
+                    <option value="VA Officer">VA Officer</option>
                     {showBranchFilter && <option value="Branch Manager">Branch Manager</option>}
                   </select>
                   <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />

@@ -155,7 +155,7 @@ export default function StudentList({ students, counselors, onAssign, branches, 
           </tbody>
         </table>
         {filtered.length === 0 && (
-          <div className="py-12 text-center text-sm text-gray-400">No students found.</div>
+          <div className="py-12 text-center text-sm text-gray-400">No clients found.</div>
         )}
       </div>
 
@@ -195,7 +195,7 @@ export default function StudentList({ students, counselors, onAssign, branches, 
           </div>
         ))}
         {filtered.length === 0 && (
-          <div className="py-12 text-center text-sm text-gray-400">No students found.</div>
+          <div className="py-12 text-center text-sm text-gray-400">No clients found.</div>
         )}
       </div>
 

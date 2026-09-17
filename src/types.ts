@@ -30,7 +30,12 @@ export interface IntakeStudent {
   email: string;
   country: string;
   purpose: string;
-  preferredDate: string;
+  dob: string;
+  gender: string;
+  maritalStatus: string;
+  academicQualification: string;
+  ieltsPte: string;
+  workExperience: string;
   submittedAt: string;
   status: 'New' | 'Assigned';
   assignedCounselor: string | null;
@@ -47,7 +52,7 @@ export interface Counselor {
   availability: CounselorAvailability;
 }
 
-export type ConsultationStatus = 'Awaiting Consultation' | 'In Progress' | 'Consultation Complete';
+export type ConsultationStatus = 'Awaiting Consultation' | 'In Progress' | 'Follow Up' | 'Consultation Complete';
 
 export type ConsultationOutcome = 'Pending' | 'Proceeding' | 'Not Proceeding';
 
@@ -58,6 +63,12 @@ export interface CounselorStudent {
   email: string;
   country: string;
   purpose: string;
+  dob: string;
+  gender: string;
+  maritalStatus: string;
+  academicQualification: string;
+  ieltsPte: string;
+  workExperience: string;
   submittedAt: string;
   assignedDate: string;
   assignedCounselor: string;
@@ -92,7 +103,7 @@ export interface ApplicationRecord {
 export type StaffRole =
   | 'Receptionist'
   | 'Counselor'
-  | 'Application Officer'
+  | 'VA Officer'
   | 'Branch Manager'
   | 'Super Admin'
   | 'Marketing'

@@ -1,5 +1,8 @@
 import { useState } from 'react';
-import { Mountain, CheckCircle, User, Phone, Mail, Globe, Target, Calendar } from 'lucide-react';
+import {
+  Mountain, CheckCircle, User, Phone, Mail, Globe, Target, Calendar,
+  Users, Heart, GraduationCap, Languages, Briefcase,
+} from 'lucide-react';
 import { COUNTRIES, PURPOSES } from '../mockData';
 
 export interface IntakeFormData {
@@ -8,8 +11,16 @@ export interface IntakeFormData {
   email: string;
   country: string;
   purpose: string;
-  preferredDate: string;
+  dob: string;
+  gender: string;
+  maritalStatus: string;
+  academicQualification: string;
+  ieltsPte: string;
+  workExperience: string;
 }
+
+const GENDERS = ['Male', 'Female', 'Other'];
+const MARITAL_STATUSES = ['Single', 'Married', 'Divorced', 'Widowed'];
 
 interface NewIntakeFormProps {
   onSubmitted?: () => void;
@@ -25,7 +36,12 @@ const EMPTY_FORM: IntakeFormData = {
   email: '',
   country: '',
   purpose: '',
-  preferredDate: '',
+  dob: '',
+  gender: '',
+  maritalStatus: '',
+  academicQualification: '',
+  ieltsPte: '',
+  workExperience: '',
 };
 
 export default function NewIntakeForm({ onSubmitted, embedded = false, onSubmit }: NewIntakeFormProps) {
@@ -96,7 +112,7 @@ export default function NewIntakeForm({ onSubmitted, embedded = false, onSubmit 
     <div className="w-full max-w-md">
       <div className="bg-white rounded-2xl border border-grey-border p-6 sm:p-8">
         <h2 className="text-lg font-semibold text-navy mb-1">
-          {embedded ? 'New Intake' : 'Welcome'}
+          {embedded ? 'Leads' : 'Welcome'}
         </h2>
         <p className="text-sm text-gray-500 mb-6">
           {embedded
@@ -191,16 +207,102 @@ export default function NewIntakeForm({ onSubmitted, embedded = false, onSubmit 
             </div>
           </div>
 
-          {/* Preferred date/time */}
+          {/* Date of birth */}
           <div>
-            <label className="block text-sm font-medium text-navy mb-1.5">Preferred consultation date & time</label>
+            <label className="block text-sm font-medium text-navy mb-1.5">Date of birth</label>
             <div className="relative">
               <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
               <input
-                type="datetime-local"
+                type="date"
                 required
-                value={form.preferredDate}
-                onChange={(e) => setForm({ ...form, preferredDate: e.target.value })}
+                value={form.dob}
+                onChange={(e) => setForm({ ...form, dob: e.target.value })}
+                className="w-full pl-10 pr-4 py-2.5 border border-grey-border rounded-lg text-sm focus:outline-none focus:border-navy-light focus:ring-1 focus:ring-navy-light transition-colors"
+              />
+            </div>
+          </div>
+
+          {/* Gender */}
+          <div>
+            <label className="block text-sm font-medium text-navy mb-1.5">Gender</label>
+            <div className="relative">
+              <Users className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
+              <select
+                required
+                value={form.gender}
+                onChange={(e) => setForm({ ...form, gender: e.target.value })}
+                className="w-full pl-10 pr-4 py-2.5 border border-grey-border rounded-lg text-sm focus:outline-none focus:border-navy-light focus:ring-1 focus:ring-navy-light transition-colors appearance-none bg-white"
+              >
+                <option value="" disabled>Select gender</option>
+                {GENDERS.map((g) => (
+                  <option key={g} value={g}>{g}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Marital status */}
+          <div>
+            <label className="block text-sm font-medium text-navy mb-1.5">Marital status</label>
+            <div className="relative">
+              <Heart className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
+              <select
+                required
+                value={form.maritalStatus}
+                onChange={(e) => setForm({ ...form, maritalStatus: e.target.value })}
+                className="w-full pl-10 pr-4 py-2.5 border border-grey-border rounded-lg text-sm focus:outline-none focus:border-navy-light focus:ring-1 focus:ring-navy-light transition-colors appearance-none bg-white"
+              >
+                <option value="" disabled>Select marital status</option>
+                {MARITAL_STATUSES.map((m) => (
+                  <option key={m} value={m}>{m}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Academic qualification */}
+          <div>
+            <label className="block text-sm font-medium text-navy mb-1.5">Academic qualification</label>
+            <div className="relative">
+              <GraduationCap className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+              <input
+                type="text"
+                required
+                value={form.academicQualification}
+                onChange={(e) => setForm({ ...form, academicQualification: e.target.value })}
+                placeholder="e.g. Bachelor's in Computer Science"
+                className="w-full pl-10 pr-4 py-2.5 border border-grey-border rounded-lg text-sm focus:outline-none focus:border-navy-light focus:ring-1 focus:ring-navy-light transition-colors"
+              />
+            </div>
+          </div>
+
+          {/* IELTS/PTE */}
+          <div>
+            <label className="block text-sm font-medium text-navy mb-1.5">IELTS/PTE score</label>
+            <div className="relative">
+              <Languages className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+              <input
+                type="text"
+                required
+                value={form.ieltsPte}
+                onChange={(e) => setForm({ ...form, ieltsPte: e.target.value })}
+                placeholder="e.g. IELTS 7.0 or Not taken yet"
+                className="w-full pl-10 pr-4 py-2.5 border border-grey-border rounded-lg text-sm focus:outline-none focus:border-navy-light focus:ring-1 focus:ring-navy-light transition-colors"
+              />
+            </div>
+          </div>
+
+          {/* Work experience */}
+          <div>
+            <label className="block text-sm font-medium text-navy mb-1.5">Work experience</label>
+            <div className="relative">
+              <Briefcase className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+              <input
+                type="text"
+                required
+                value={form.workExperience}
+                onChange={(e) => setForm({ ...form, workExperience: e.target.value })}
+                placeholder="e.g. 3 years as Software Engineer"
                 className="w-full pl-10 pr-4 py-2.5 border border-grey-border rounded-lg text-sm focus:outline-none focus:border-navy-light focus:ring-1 focus:ring-navy-light transition-colors"
               />
             </div>

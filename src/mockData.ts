@@ -1,4 +1,4 @@
-import { Role, NavConfig, IntakeStudent, Counselor, CounselorStudent, ApplicationRecord, StaffMember, StaffRole, ActivityEntry, Branch, CommissionRecord, Partner, AppNotification } from './types';
+import { Role, NavConfig, Counselor, ApplicationRecord, StaffMember, StaffRole, ActivityEntry, Branch, CommissionRecord, Partner, AppNotification } from './types';
 
 export const ROLE_LABELS: Record<Role, string> = {
   super_admin: 'Super Admin',
@@ -7,7 +7,7 @@ export const ROLE_LABELS: Record<Role, string> = {
   branch_manager: 'Branch Manager',
   receptionist: 'Receptionist',
   counselor: 'Counselor',
-  application_officer: 'Application Officer',
+  application_officer: 'VA Officer',
 };
 
 // Maps a `staff` table row's role (Title Case, as entered in Staff Management) to the
@@ -20,12 +20,12 @@ export const STAFF_ROLE_TO_ROLE: Record<StaffRole, Role> = {
   'Branch Manager': 'branch_manager',
   Receptionist: 'receptionist',
   Counselor: 'counselor',
-  'Application Officer': 'application_officer',
+  'VA Officer': 'application_officer',
 };
 
 export const NAV_CONFIG: NavConfig = {
   super_admin: [
-    { key: 'overview', label: 'Overview', icon: 'LayoutDashboard' },
+    { key: 'overview', label: 'Dashboard', icon: 'LayoutDashboard' },
     { key: 'branches', label: 'All Branches', icon: 'Building2' },
     { key: 'students', label: 'Students', icon: 'GraduationCap' },
     { key: 'applications', label: 'Applications', icon: 'FileText' },
@@ -35,37 +35,41 @@ export const NAV_CONFIG: NavConfig = {
     { key: 'reports', label: 'Reports', icon: 'BarChart3' },
   ],
   marketing: [
-    { key: 'overview', label: 'Overview', icon: 'LayoutDashboard' },
+    { key: 'overview', label: 'Dashboard', icon: 'LayoutDashboard' },
     { key: 'students', label: 'Students', icon: 'GraduationCap', viewOnly: true },
     { key: 'reports', label: 'Reports', icon: 'BarChart3' },
   ],
   finance: [
-    { key: 'overview', label: 'Overview', icon: 'LayoutDashboard' },
+    { key: 'overview', label: 'Dashboard', icon: 'LayoutDashboard' },
     { key: 'commissions', label: 'Commissions', icon: 'DollarSign' },
     { key: 'applications', label: 'Applications', icon: 'FileText', viewOnly: true },
     { key: 'reports', label: 'Reports', icon: 'BarChart3' },
   ],
   branch_manager: [
-    { key: 'overview', label: 'Overview', icon: 'LayoutDashboard' },
+    { key: 'overview', label: 'Dashboard', icon: 'LayoutDashboard' },
     { key: 'students', label: 'Students', icon: 'GraduationCap' },
     { key: 'applications', label: 'Applications', icon: 'FileText' },
     { key: 'staff', label: 'Staff', icon: 'Users' },
     { key: 'reports', label: 'Reports', icon: 'BarChart3' },
   ],
   receptionist: [
-    { key: 'overview', label: 'Overview', icon: 'LayoutDashboard' },
-    { key: 'new-intake', label: 'New Intake', icon: 'UserPlus' },
-    { key: 'students', label: 'Students', icon: 'GraduationCap' },
+    { key: 'overview', label: 'Dashboard', icon: 'LayoutDashboard' },
+    { key: 'new-intake', label: 'Leads', icon: 'UserPlus' },
+    { key: 'students', label: 'Clients', icon: 'GraduationCap' },
     { key: 'assign-counselor', label: 'Assign Counselor', icon: 'UserCheck' },
   ],
   counselor: [
-    { key: 'overview', label: 'Overview', icon: 'LayoutDashboard' },
-    { key: 'my-students', label: 'Assigned Students', icon: 'GraduationCap' },
-    { key: 'consultations', label: 'Consulted Students', icon: 'CalendarDays' },
+    { key: 'overview', label: 'Dashboard', icon: 'LayoutDashboard' },
+    { key: 'my-students', label: 'Assigned Clients', icon: 'GraduationCap' },
+    { key: 'consultations', label: 'Enrolled', icon: 'CalendarDays' },
+    { key: 'follow-ups', label: 'Follow Ups', icon: 'PhoneCall' },
+    { key: 'archive', label: 'Archive', icon: 'Archive' },
   ],
   application_officer: [
-    { key: 'overview', label: 'Overview', icon: 'LayoutDashboard' },
+    { key: 'overview', label: 'Dashboard', icon: 'LayoutDashboard' },
     { key: 'applications', label: 'Applications', icon: 'FileText' },
+    { key: 'offer', label: 'Offer', icon: 'FileCheck' },
+    { key: 'visa', label: 'Visa', icon: 'Stamp' },
     { key: 'status-updates', label: 'Status Updates', icon: 'RefreshCw' },
   ],
 };
@@ -87,7 +91,7 @@ export const OVERVIEW_STATS: StatCard[] = [
 
 export const COUNTRIES = ['Australia', 'Canada', 'United Kingdom', 'USA', 'New Zealand'];
 
-export const PURPOSES = ['Study', 'Work', 'Tourist', 'PR'];
+export const PURPOSES = ['Study', 'SOWP', 'Tourist', 'PR'];
 
 export const MOCK_COUNSELORS: Counselor[] = [
   { id: 'c1', name: 'Ramesh Thapa', country: 'Australia', activeAssignments: 12, availability: 'Available' },
@@ -96,26 +100,6 @@ export const MOCK_COUNSELORS: Counselor[] = [
   { id: 'c4', name: 'Anjali Shrestha', country: 'USA', activeAssignments: 6, availability: 'Away' },
   { id: 'c5', name: 'Niraj Maharjan', country: 'New Zealand', activeAssignments: 10, availability: 'In Session' },
   { id: 'c6', name: 'Milan Gurung', country: 'Australia', activeAssignments: 10, availability: 'Available' },
-];
-
-export const MOCK_STUDENTS: IntakeStudent[] = [
-  { id: 's1', name: 'Arjun Mehta', phone: '+61 412 345 678', email: 'arjun.mehta@gmail.com', country: 'Australia', purpose: 'Study', preferredDate: '2026-09-16T10:00', submittedAt: '2026-09-14 09:15 AM', status: 'New', assignedCounselor: null, branch: 'Chitwan' },
-  { id: 's2', name: 'Lina Zhang', phone: '+61 423 987 654', email: 'lina.zhang@outlook.com', country: 'Canada', purpose: 'PR', preferredDate: '2026-09-18T14:00', submittedAt: '2026-09-14 08:42 AM', status: 'New', assignedCounselor: null, branch: 'Butwal' },
-  { id: 's3', name: 'Mohammed Ali', phone: '+61 445 123 456', email: 'm.ali@yahoo.com', country: 'United Kingdom', purpose: 'Work', preferredDate: '2026-09-17T11:30', submittedAt: '2026-09-13 03:20 PM', status: 'Assigned', assignedCounselor: 'Ramesh Thapa', branch: 'Kamaladi' },
-  { id: 's4', name: 'Sara Khan', phone: '+61 478 456 789', email: 'sara.khan@gmail.com', country: 'USA', purpose: 'Tourist', preferredDate: '2026-09-20T09:00', submittedAt: '2026-09-13 01:10 PM', status: 'New', assignedCounselor: null, branch: 'Putalisadak' },
-  { id: 's5', name: 'Deepak Thapa', phone: '+61 489 654 321', email: 'deepak.t@gmail.com', country: 'Australia', purpose: 'Study', preferredDate: '2026-09-19T15:00', submittedAt: '2026-09-12 11:45 AM', status: 'Assigned', assignedCounselor: 'Sita Gurung', branch: 'New Baneshwor' },
-  { id: 's6', name: 'Emily Park', phone: '+61 401 222 333', email: 'emily.park@gmail.com', country: 'New Zealand', purpose: 'Work', preferredDate: '2026-09-21T13:00', submittedAt: '2026-09-12 10:30 AM', status: 'New', assignedCounselor: null, branch: 'Butwal' },
-  { id: 's7', name: 'Ravi Gupta', phone: '+61 433 777 888', email: 'ravi.gupta@outlook.com', country: 'Canada', purpose: 'PR', preferredDate: '2026-09-18T16:00', submittedAt: '2026-09-11 02:15 PM', status: 'Assigned', assignedCounselor: 'Bikash Rai', branch: 'Butwal' },
-  { id: 's8', name: 'Anna Lee', phone: '+61 415 555 999', email: 'anna.lee@gmail.com', country: 'Australia', purpose: 'Study', preferredDate: '2026-09-22T10:30', submittedAt: '2026-09-11 09:00 AM', status: 'New', assignedCounselor: null, branch: 'Butwal' },
-];
-
-export const MOCK_COUNSELOR_STUDENTS: CounselorStudent[] = [
-  { id: 'cs1', name: 'Arjun Mehta', phone: '+61 412 345 678', email: 'arjun.mehta@gmail.com', country: 'Australia', purpose: 'Study', submittedAt: '2026-09-14 09:15 AM', assignedDate: '2026-09-14', assignedCounselor: 'David Chen', consultationStatus: 'Awaiting Consultation', consultationNotes: '', completedDate: null, outcome: 'Pending' },
-  { id: 'cs2', name: 'Mohammed Ali', phone: '+61 445 123 456', email: 'm.ali@yahoo.com', country: 'United Kingdom', purpose: 'Work', submittedAt: '2026-09-13 03:20 PM', assignedDate: '2026-09-13', assignedCounselor: 'David Chen', consultationStatus: 'In Progress', consultationNotes: 'Client interested in skilled migration pathway. Needs IELTS assessment. Discussed employer sponsorship options.', completedDate: null, outcome: 'Pending' },
-  { id: 'cs3', name: 'Emily Park', phone: '+61 401 222 333', email: 'emily.park@gmail.com', country: 'New Zealand', purpose: 'Work', submittedAt: '2026-09-12 10:30 AM', assignedDate: '2026-09-12', assignedCounselor: 'David Chen', consultationStatus: 'Consultation Complete', consultationNotes: 'Client has valid job offer from Sydney employer. Recommended 482 visa (temporary skill shortage). All documents verified and ready for lodgement.', completedDate: '2026-09-13', outcome: 'Proceeding' },
-  { id: 'cs4', name: 'Ravi Gupta', phone: '+61 433 777 888', email: 'ravi.gupta@outlook.com', country: 'Canada', purpose: 'PR', submittedAt: '2026-09-11 02:15 PM', assignedDate: '2026-09-11', assignedCounselor: 'David Chen', consultationStatus: 'In Progress', consultationNotes: 'Client seeking permanent residency via Express Entry. Reviewed education credentials and work experience. Need to arrange WES assessment.', completedDate: null, outcome: 'Pending' },
-  { id: 'cs5', name: 'Anna Lee', phone: '+61 415 555 999', email: 'anna.lee@gmail.com', country: 'Australia', purpose: 'Study', submittedAt: '2026-09-11 09:00 AM', assignedDate: '2026-09-11', assignedCounselor: 'David Chen', consultationStatus: 'Awaiting Consultation', consultationNotes: '', completedDate: null, outcome: 'Pending' },
-  { id: 'cs6', name: 'Sara Khan', phone: '+61 478 456 789', email: 'sara.khan@gmail.com', country: 'USA', purpose: 'Tourist', submittedAt: '2026-09-13 01:10 PM', assignedDate: '2026-09-13', assignedCounselor: 'David Chen', consultationStatus: 'Consultation Complete', consultationNotes: 'Client applying for US B1/B2 tourist visa. Travel planned for December. Documents collected: passport, bank statements, employment letter.', completedDate: '2026-09-14', outcome: 'Not Proceeding' },
 ];
 
 export const MOCK_APPLICATIONS: ApplicationRecord[] = [
@@ -293,8 +277,8 @@ export const MOCK_STAFF: StaffMember[] = [
   { id: 'st2', name: 'Ramesh Thapa', email: 'ramesh@everestvisa.com', password: 'Passw0rd1', role: 'Counselor', status: 'Active', branch: 'Sydney CBD' },
   { id: 'st3', name: 'Sita Gurung', email: 'sita@everestvisa.com', password: 'Passw0rd1', role: 'Counselor', status: 'Active', branch: 'Sydney CBD' },
   { id: 'st4', name: 'Niraj Maharjan', email: 'niraj@everestvisa.com', password: 'Passw0rd1', role: 'Counselor', status: 'Inactive', branch: 'Sydney CBD' },
-  { id: 'st5', name: 'Maria Santos', email: 'maria@everestvisa.com', password: 'Passw0rd1', role: 'Application Officer', status: 'Active', branch: 'Sydney CBD' },
-  { id: 'st6', name: 'John Smith', email: 'john@everestvisa.com', password: 'Passw0rd1', role: 'Application Officer', status: 'Active', branch: 'Sydney CBD' },
+  { id: 'st5', name: 'Maria Santos', email: 'maria@everestvisa.com', password: 'Passw0rd1', role: 'VA Officer', status: 'Active', branch: 'Sydney CBD' },
+  { id: 'st6', name: 'John Smith', email: 'john@everestvisa.com', password: 'Passw0rd1', role: 'VA Officer', status: 'Active', branch: 'Sydney CBD' },
 ];
 
 export const BRANCH_MANAGER_STATS = [

@@ -12,6 +12,7 @@ const ICON_MAP: Record<string, LucideIcon> = {
 const CONSULTATION_STATUS_STYLES: Record<ConsultationStatus, string> = {
   'Awaiting Consultation': 'bg-orange-100 text-orange-700',
   'In Progress': 'bg-blue-100 text-blue-700',
+  'Follow Up': 'bg-purple-100 text-purple-700',
   'Consultation Complete': 'bg-green-100 text-green-700',
 };
 

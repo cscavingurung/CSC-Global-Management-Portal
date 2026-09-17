@@ -1,5 +1,8 @@
 import { useMemo, useState, useEffect } from 'react';
-import { X, User, Phone, Mail, Globe, Target, Calendar, Check, UserCheck } from 'lucide-react';
+import {
+  X, User, Phone, Mail, Globe, Target, Check, UserCheck,
+  Users, Heart, GraduationCap, Languages, Briefcase, Cake,
+} from 'lucide-react';
 import { IntakeStudent, Counselor } from '../types';
 import { AVAILABILITY_STYLES, sortByAvailability } from '../counselorStatus';
 
@@ -46,7 +49,12 @@ export default function AssignCounselorModal({
     { icon: Mail, label: 'Email', value: student.email },
     { icon: Globe, label: 'Country', value: student.country },
     { icon: Target, label: 'Purpose', value: student.purpose },
-    { icon: Calendar, label: 'Preferred', value: student.preferredDate },
+    { icon: Cake, label: 'Date of Birth', value: student.dob },
+    { icon: Users, label: 'Gender', value: student.gender },
+    { icon: Heart, label: 'Marital Status', value: student.maritalStatus },
+    { icon: GraduationCap, label: 'Academic Qualification', value: student.academicQualification },
+    { icon: Languages, label: 'IELTS/PTE', value: student.ieltsPte },
+    { icon: Briefcase, label: 'Work Experience', value: student.workExperience },
   ];
 
   return (

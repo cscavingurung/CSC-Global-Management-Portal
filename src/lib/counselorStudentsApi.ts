@@ -8,6 +8,12 @@ interface CounselorStudentRow {
   email: string;
   country: string;
   purpose: string;
+  dob: string;
+  gender: string;
+  marital_status: string;
+  academic_qualification: string;
+  ielts_pte: string;
+  work_experience: string;
   submitted_at: string;
   assigned_date: string;
   assigned_counselor: string;
@@ -25,6 +31,12 @@ function fromRow(row: CounselorStudentRow): CounselorStudent {
     email: row.email,
     country: row.country,
     purpose: row.purpose,
+    dob: row.dob,
+    gender: row.gender,
+    maritalStatus: row.marital_status,
+    academicQualification: row.academic_qualification,
+    ieltsPte: row.ielts_pte,
+    workExperience: row.work_experience,
     submittedAt: row.submitted_at,
     assignedDate: row.assigned_date,
     assignedCounselor: row.assigned_counselor,
@@ -42,6 +54,12 @@ function toRowUpdates(updates: Partial<CounselorStudent>): Record<string, unknow
   if (updates.email !== undefined) row.email = updates.email;
   if (updates.country !== undefined) row.country = updates.country;
   if (updates.purpose !== undefined) row.purpose = updates.purpose;
+  if (updates.dob !== undefined) row.dob = updates.dob;
+  if (updates.gender !== undefined) row.gender = updates.gender;
+  if (updates.maritalStatus !== undefined) row.marital_status = updates.maritalStatus;
+  if (updates.academicQualification !== undefined) row.academic_qualification = updates.academicQualification;
+  if (updates.ieltsPte !== undefined) row.ielts_pte = updates.ieltsPte;
+  if (updates.workExperience !== undefined) row.work_experience = updates.workExperience;
   if (updates.submittedAt !== undefined) row.submitted_at = updates.submittedAt;
   if (updates.assignedDate !== undefined) row.assigned_date = updates.assignedDate;
   if (updates.assignedCounselor !== undefined) row.assigned_counselor = updates.assignedCounselor;
@@ -60,6 +78,12 @@ function toRow(cs: CounselorStudent): CounselorStudentRow {
     email: cs.email,
     country: cs.country,
     purpose: cs.purpose,
+    dob: cs.dob,
+    gender: cs.gender,
+    marital_status: cs.maritalStatus,
+    academic_qualification: cs.academicQualification,
+    ielts_pte: cs.ieltsPte,
+    work_experience: cs.workExperience,
     submitted_at: cs.submittedAt,
     assigned_date: cs.assignedDate,
     assigned_counselor: cs.assignedCounselor,

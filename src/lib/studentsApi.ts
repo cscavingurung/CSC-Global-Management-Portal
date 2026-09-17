@@ -8,7 +8,12 @@ interface StudentRow {
   email: string;
   country: string;
   purpose: string;
-  preferred_date: string;
+  dob: string;
+  gender: string;
+  marital_status: string;
+  academic_qualification: string;
+  ielts_pte: string;
+  work_experience: string;
   submitted_at: string;
   status: IntakeStudent['status'];
   assigned_counselor: string | null;
@@ -23,7 +28,12 @@ function fromRow(row: StudentRow): IntakeStudent {
     email: row.email,
     country: row.country,
     purpose: row.purpose,
-    preferredDate: row.preferred_date,
+    dob: row.dob,
+    gender: row.gender,
+    maritalStatus: row.marital_status,
+    academicQualification: row.academic_qualification,
+    ieltsPte: row.ielts_pte,
+    workExperience: row.work_experience,
     submittedAt: row.submitted_at,
     status: row.status,
     assignedCounselor: row.assigned_counselor,
@@ -39,7 +49,12 @@ function toRow(student: IntakeStudent): StudentRow {
     email: student.email,
     country: student.country,
     purpose: student.purpose,
-    preferred_date: student.preferredDate,
+    dob: student.dob,
+    gender: student.gender,
+    marital_status: student.maritalStatus,
+    academic_qualification: student.academicQualification,
+    ielts_pte: student.ieltsPte,
+    work_experience: student.workExperience,
     submitted_at: student.submittedAt,
     status: student.status,
     assigned_counselor: student.assignedCounselor,
@@ -54,7 +69,12 @@ function toRowUpdates(updates: Partial<IntakeStudent>): Record<string, unknown> 
   if (updates.email !== undefined) row.email = updates.email;
   if (updates.country !== undefined) row.country = updates.country;
   if (updates.purpose !== undefined) row.purpose = updates.purpose;
-  if (updates.preferredDate !== undefined) row.preferred_date = updates.preferredDate;
+  if (updates.dob !== undefined) row.dob = updates.dob;
+  if (updates.gender !== undefined) row.gender = updates.gender;
+  if (updates.maritalStatus !== undefined) row.marital_status = updates.maritalStatus;
+  if (updates.academicQualification !== undefined) row.academic_qualification = updates.academicQualification;
+  if (updates.ieltsPte !== undefined) row.ielts_pte = updates.ieltsPte;
+  if (updates.workExperience !== undefined) row.work_experience = updates.workExperience;
   if (updates.submittedAt !== undefined) row.submitted_at = updates.submittedAt;
   if (updates.status !== undefined) row.status = updates.status;
   if (updates.assignedCounselor !== undefined) row.assigned_counselor = updates.assignedCounselor;

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import {
   LogOut, Menu, X,
   LayoutDashboard, Building2, GraduationCap, FileText, DollarSign,
-  Users, BarChart3, UserPlus, UserCheck, CalendarDays, RefreshCw, Landmark,
+  Users, BarChart3, UserPlus, UserCheck, CalendarDays, RefreshCw, Landmark, Archive, PhoneCall, Stamp, FileCheck,
   type LucideIcon,
 } from 'lucide-react';
 import { AppNotification, MockUser, NavItem } from '../types';
@@ -11,7 +11,7 @@ import NotificationBell from './NotificationBell';
 
 const ICON_MAP: Record<string, LucideIcon> = {
   LayoutDashboard, Building2, GraduationCap, FileText, DollarSign,
-  Users, BarChart3, UserPlus, UserCheck, CalendarDays, RefreshCw, Landmark,
+  Users, BarChart3, UserPlus, UserCheck, CalendarDays, RefreshCw, Landmark, Archive, PhoneCall, Stamp, FileCheck,
 };
 
 interface DashboardShellProps {

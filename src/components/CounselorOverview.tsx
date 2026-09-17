@@ -12,6 +12,7 @@ interface CounselorOverviewProps {
 const CONSULTATION_STATUS_STYLES: Record<ConsultationStatus, string> = {
   'Awaiting Consultation': 'bg-orange-100 text-orange-700',
   'In Progress': 'bg-blue-100 text-blue-700',
+  'Follow Up': 'bg-purple-100 text-purple-700',
   'Consultation Complete': 'bg-green-100 text-green-700',
 };
 
@@ -182,7 +183,7 @@ export default function CounselorOverview({ counselorName, counselorStudents, ap
         </div>
 
         <div className="stat-card">
-          <h3 className="text-base font-semibold text-navy mb-4">My Students' Applications</h3>
+          <h3 className="text-base font-semibold text-navy mb-4">My Clients' Applications</h3>
           {myApplications.length > 0 ? (
             <div className="space-y-0">
               {myApplications.map((a) => (
