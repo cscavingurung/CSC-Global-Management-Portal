@@ -14,6 +14,8 @@ interface StaffManagementProps {
   onRemoveStaff: (id: string) => void;
   branches?: string[];
   showBranchFilter?: boolean;
+  /** The signed-in user's own email — used to stop them removing their own staff record. */
+  currentUserEmail?: string;
 }
 
 const ROLE_STYLES: Record<StaffRole, string> = {
@@ -27,7 +29,17 @@ const ROLE_STYLES: Record<StaffRole, string> = {
 };
 
 
-export default function StaffManagement({ staff, onAddStaff, onUpdateStaff, onRemoveStaff, branches, showBranchFilter }: StaffManagementProps) {
+export default function StaffManagement({ staff, onAddStaff, onUpdateStaff, onRemoveStaff, branches, showBranchFilter, currentUserEmail }: StaffManagementProps) {
+  const isSelf = (s: StaffMember) =>
+    !!currentUserEmail && s.email.trim().toLowerCase() === currentUserEmail.trim().toLowerCase();
+  // Super Admin accounts can't be removed by anyone in-app (including another Super
+  // Admin) — only self-removal is a distinct case worth a different tooltip.
+  const removalBlockedReason = (s: StaffMember): string | null => {
+    if (isSelf(s)) return "You can't remove your own account.";
+    if (s.role === 'Super Admin') return "Super Admin accounts can't be removed.";
+    return null;
+  };
+
   const [search, setSearch] = useState('');
   const [branchFilter, setBranchFilter] = useState<string>('all');
   const [showAddForm, setShowAddForm] = useState(false);
@@ -120,7 +132,7 @@ export default function StaffManagement({ staff, onAddStaff, onUpdateStaff, onRe
   };
 
   const handleConfirmRemove = () => {
-    if (removeTarget) {
+    if (removeTarget && !removalBlockedReason(removeTarget)) {
       onRemoveStaff(removeTarget.id);
       setRemoveTarget(null);
       if (selectedStaffId === removeTarget.id) setSelectedStaffId(null);
@@ -215,16 +227,26 @@ export default function StaffManagement({ staff, onAddStaff, onUpdateStaff, onRe
                   </span>
                 </td>
                 <td className="px-5 py-3.5 text-right">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setRemoveTarget(s);
-                    }}
-                    className="inline-flex items-center gap-1.5 text-sm font-medium text-red-500 hover:text-red-600 transition-colors"
-                  >
-                    <Trash2 size={15} />
-                    Remove
-                  </button>
+                  {removalBlockedReason(s) ? (
+                    <span
+                      title={removalBlockedReason(s)!}
+                      className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-300 cursor-not-allowed"
+                    >
+                      <Trash2 size={15} />
+                      Remove
+                    </span>
+                  ) : (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setRemoveTarget(s);
+                      }}
+                      className="inline-flex items-center gap-1.5 text-sm font-medium text-red-500 hover:text-red-600 transition-colors"
+                    >
+                      <Trash2 size={15} />
+                      Remove
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}
@@ -262,16 +284,26 @@ export default function StaffManagement({ staff, onAddStaff, onUpdateStaff, onRe
                   {s.status}
                 </span>
               </span>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setRemoveTarget(s);
-                }}
-                className="inline-flex items-center gap-1.5 text-sm font-medium text-red-500 hover:text-red-600 transition-colors"
-              >
-                <Trash2 size={15} />
-                Remove
-              </button>
+              {removalBlockedReason(s) ? (
+                <span
+                  title={removalBlockedReason(s)!}
+                  className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-300 cursor-not-allowed"
+                >
+                  <Trash2 size={15} />
+                  Remove
+                </span>
+              ) : (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setRemoveTarget(s);
+                  }}
+                  className="inline-flex items-center gap-1.5 text-sm font-medium text-red-500 hover:text-red-600 transition-colors"
+                >
+                  <Trash2 size={15} />
+                  Remove
+                </button>
+              )}
             </div>
           </div>
         ))}

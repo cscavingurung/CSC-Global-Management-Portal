@@ -1,21 +1,23 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   GraduationCap, CalendarDays, FileText, CheckCircle,
-  TrendingUp, UserCheck, RefreshCw, UserPlus, ClipboardList,
+  UserCheck, RefreshCw, UserPlus, ClipboardList,
   UserX, FileClock, UserMinus, ChevronLeft, ChevronRight, type LucideIcon,
 } from 'lucide-react';
-import { ActivityEntry, ApplicationRecord, Counselor, IntakeStudent } from '../types';
+import { ActivityEntry, AppNotification, ApplicationRecord, Counselor, CounselorStudent, IntakeStudent, StaffMember } from '../types';
 import { parseSubmittedAt } from '../dateTime';
+import { formatRelativeTime } from '../notifications';
 import { daysInCurrentStatus, latestStatusHistoryDate } from '../applicationHistory';
-import type { BranchStats } from '../lib/branchOverviewApi';
+import { computeBranchOverviewStats } from '../branchLiveStats';
 
 interface BranchManagerOverviewProps {
   branch: string;
   students: IntakeStudent[];
+  counselorStudents: CounselorStudent[];
   applications: ApplicationRecord[];
   counselors: Counselor[];
-  stats: BranchStats;
-  activityFeed: ActivityEntry[];
+  staff: StaffMember[];
+  notifications: AppNotification[];
 }
 
 const ACTIVITY_ICONS: Record<ActivityEntry['type'], LucideIcon> = {
@@ -45,10 +47,18 @@ const STALE_STUDENT_HOURS = 24;
 
 type ActivityFilter = 'all' | ActivityEntry['type'];
 
-// Mock timestamps are relative strings ("15 min ago", "3 hours ago", "1 day ago") with no
-// real date behind them — anything not phrased in days is treated as having happened today.
-function isToday(timestamp: string): boolean {
-  return !/\bdays?\b/i.test(timestamp);
+// Today's Activity is derived live from the branch-scoped notifications created alongside
+// New Intake / Assign Counselor / Consultation Ready (see createBranchManagerNotification in
+// src/notifications.ts) rather than the static, never-written-to activity_feed table. There's
+// no notification for application status changes yet, so the 'status' filter has no entries.
+const TRIGGER_TO_ACTIVITY_TYPE: Record<AppNotification['trigger'], ActivityEntry['type']> = {
+  'new-intake': 'intake',
+  'assigned-to-counselor': 'assignment',
+  'consultation-ready': 'consultation',
+};
+
+function isSameDay(a: Date, b: Date): boolean {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 }
 
 interface NeedsAttentionRow {
@@ -61,14 +71,19 @@ interface NeedsAttentionRow {
   severity: number;
 }
 
-export default function BranchManagerOverview({ branch, students, applications, counselors, stats, activityFeed }: BranchManagerOverviewProps) {
+export default function BranchManagerOverview({ branch, students, counselorStudents, applications, counselors, staff, notifications }: BranchManagerOverviewProps) {
   const [activityFilter, setActivityFilter] = useState<ActivityFilter>('all');
   const [activityPage, setActivityPage] = useState(1);
 
-  const statCards: { key: string; icon: LucideIcon; value: number; label: string; trend: string; trendUp: boolean }[] = [
-    { key: 'total-students', icon: GraduationCap, value: stats.totalStudents.value, label: 'Total Students This Month', trend: stats.totalStudents.trend, trendUp: stats.totalStudents.trendUp },
-    { key: 'active-consultations', icon: CalendarDays, value: stats.activeConsultations.value, label: 'Active Consultations', trend: stats.activeConsultations.trend, trendUp: stats.activeConsultations.trendUp },
-    { key: 'applications-in-progress', icon: FileText, value: stats.applicationsInProgress.value, label: 'Applications In Progress', trend: stats.applicationsInProgress.trend, trendUp: stats.applicationsInProgress.trendUp },
+  const stats = useMemo(
+    () => computeBranchOverviewStats(branch, students, counselorStudents, applications, staff),
+    [branch, students, counselorStudents, applications, staff]
+  );
+
+  const statCards: { key: string; icon: LucideIcon; value: number; label: string }[] = [
+    { key: 'total-students', icon: GraduationCap, value: stats.totalStudentsThisMonth, label: 'Total Students This Month' },
+    { key: 'active-consultations', icon: CalendarDays, value: stats.activeConsultations, label: 'Active Consultations' },
+    { key: 'applications-in-progress', icon: FileText, value: stats.applicationsInProgress, label: 'Applications In Progress' },
   ];
 
   const branchApplications = useMemo(
@@ -142,11 +157,18 @@ export default function BranchManagerOverview({ branch, students, applications, 
     return rows.sort((a, b) => b.severity - a.severity);
   }, [students, branchApplications, counselors, now]);
 
-  const todaysActivity = useMemo(() => {
-    return activityFeed.filter(
-      (e) => isToday(e.timestamp) && (activityFilter === 'all' || e.type === activityFilter)
-    );
-  }, [activityFeed, activityFilter]);
+  const todaysActivity = useMemo<ActivityEntry[]>(() => {
+    const today = new Date();
+    return notifications
+      .filter((n) => n.role === 'branch_manager' && n.branch === branch && isSameDay(n.createdAt, today))
+      .filter((n) => activityFilter === 'all' || TRIGGER_TO_ACTIVITY_TYPE[n.trigger] === activityFilter)
+      .map((n) => ({
+        id: n.id,
+        message: `${n.messageBefore}${n.studentName}${n.messageAfter}`,
+        timestamp: formatRelativeTime(n.createdAt),
+        type: TRIGGER_TO_ACTIVITY_TYPE[n.trigger],
+      }));
+  }, [notifications, branch, activityFilter]);
 
   const activityTotalPages = Math.max(1, Math.ceil(todaysActivity.length / ACTIVITY_PAGE_SIZE));
 
@@ -179,15 +201,9 @@ export default function BranchManagerOverview({ branch, students, applications, 
                 <div className="w-11 h-11 rounded-lg bg-navy/5 flex items-center justify-center">
                   <Icon className="text-navy" size={22} />
                 </div>
-                <div className={`flex items-center gap-1 text-xs font-medium ${stat.trendUp ? 'text-green-600' : 'text-orange-600'}`}>
-                  <TrendingUp size={14} />
-                </div>
               </div>
               <p className="text-3xl font-bold text-navy">{stat.value}</p>
               <p className="text-sm text-gray-500 mt-1">{stat.label}</p>
-              <p className={`text-xs mt-2 ${stat.trendUp ? 'text-green-600' : 'text-orange-600'}`}>
-                {stat.trend}
-              </p>
             </div>
           );
         })}

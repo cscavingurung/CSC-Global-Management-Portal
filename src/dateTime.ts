@@ -9,6 +9,20 @@ export function parseSubmittedAt(value: string): Date | null {
   return new Date(Number(y), Number(mo) - 1, Number(d), hour, Number(mi));
 }
 
+// Inverse of parseSubmittedAt — used when a new IntakeStudent is created (real New Intake
+// submissions) so the string it's stored with is guaranteed parseable. Built from explicit
+// date parts rather than `toLocaleString`, whose output shape varies by locale/engine (e.g.
+// "en-AU" produces "DD/MM/YYYY, hh:mm am/pm", which parseSubmittedAt can't read at all).
+export function formatSubmittedAt(date: Date): string {
+  const y = date.getFullYear();
+  const mo = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  const mi = String(date.getMinutes()).padStart(2, '0');
+  const ampm = date.getHours() >= 12 ? 'PM' : 'AM';
+  const hour = date.getHours() % 12 || 12;
+  return `${y}-${mo}-${d} ${hour}:${mi} ${ampm}`;
+}
+
 export function dateKey(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }

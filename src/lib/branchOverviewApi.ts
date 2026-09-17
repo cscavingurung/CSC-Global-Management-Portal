@@ -1,5 +1,4 @@
 import { supabase } from './supabaseClient';
-import { ActivityEntry } from '../types';
 
 export interface BranchStats {
   totalStudents: { value: number; trend: string; trendUp: boolean };
@@ -30,35 +29,6 @@ interface BranchStatsRow {
   applications_in_progress_trend_up: boolean;
   decided_granted: number;
   decided_refused: number;
-}
-
-function fromStatsRow(row: BranchStatsRow): BranchStats {
-  return {
-    totalStudents: {
-      value: row.total_students_this_month,
-      trend: row.total_students_trend,
-      trendUp: row.total_students_trend_up,
-    },
-    activeConsultations: {
-      value: row.active_consultations,
-      trend: row.active_consultations_trend,
-      trendUp: row.active_consultations_trend_up,
-    },
-    applicationsInProgress: {
-      value: row.applications_in_progress,
-      trend: row.applications_in_progress_trend,
-      trendUp: row.applications_in_progress_trend_up,
-    },
-    decidedGranted: row.decided_granted,
-    decidedRefused: row.decided_refused,
-  };
-}
-
-export async function fetchBranchStats(branch: string): Promise<BranchStats> {
-  if (!supabase) return DEFAULT_BRANCH_STATS;
-  const { data, error } = await supabase.from('branch_stats').select('*').eq('branch', branch).maybeSingle();
-  if (error) throw error;
-  return data ? fromStatsRow(data as BranchStatsRow) : DEFAULT_BRANCH_STATS;
 }
 
 export interface AggregatedBranchStats extends BranchStats {
@@ -109,27 +79,4 @@ export async function fetchAggregatedBranchStats(branchNames: string[]): Promise
     decidedRefused: sum('decided_refused'),
     branchCount: rows.length,
   };
-}
-
-interface ActivityFeedRow {
-  id: string;
-  message: string;
-  timestamp: string;
-  type: ActivityEntry['type'];
-  sort_order: number;
-}
-
-export async function fetchActivityFeed(): Promise<ActivityEntry[]> {
-  if (!supabase) return [];
-  const { data, error } = await supabase
-    .from('activity_feed')
-    .select('id, message, timestamp, type, sort_order')
-    .order('sort_order', { ascending: true });
-  if (error) throw error;
-  return (data as ActivityFeedRow[]).map((row) => ({
-    id: row.id,
-    message: row.message,
-    timestamp: row.timestamp,
-    type: row.type,
-  }));
 }

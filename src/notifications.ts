@@ -51,6 +51,31 @@ export function createConsultationReadyNotification(studentName: string, branch:
   };
 }
 
+// A branch-scoped copy of one of the three events above, addressed to the Branch Manager —
+// none of the three factories above ever set role: 'branch_manager', so without this a
+// manager never sees a notification for activity in their own branch.
+export function createBranchManagerNotification(
+  trigger: AppNotification['trigger'],
+  studentName: string,
+  messageBefore: string,
+  messageAfter: string,
+  branch: string,
+  navigateTo: string
+): AppNotification {
+  return {
+    id: nextId(),
+    trigger,
+    studentName,
+    messageBefore,
+    messageAfter,
+    createdAt: new Date(),
+    read: false,
+    role: 'branch_manager',
+    branch,
+    navigateTo,
+  };
+}
+
 // A notification is visible to a user when the role matches, and — depending on how it's
 // scoped — either the specific recipient or the branch also matches. Role-only notifications
 // (neither set) are visible to everyone in that role.

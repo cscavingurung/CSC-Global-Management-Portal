@@ -20,19 +20,20 @@ import ApplicationsList from './components/ApplicationsList';
 import StatusUpdatesKanban from './components/StatusUpdatesKanban';
 import StaffManagement from './components/StaffManagement';
 import ReportsPage from './components/ReportsPage';
-import { MockUser, IntakeStudent, CounselorStudent, ApplicationRecord, StaffMember, Branch, CommissionRecord, Partner, AppNotification, Counselor, ActivityEntry } from './types';
+import { MockUser, IntakeStudent, CounselorStudent, ApplicationRecord, StaffMember, Branch, CommissionRecord, Partner, AppNotification, Counselor } from './types';
 import {
   NAV_CONFIG,
   MOCK_COMMISSIONS, MOCK_PARTNERS,
 } from './mockData';
-import { createIntakeNotification, createAssignmentNotification, createConsultationReadyNotification } from './notifications';
+import { createIntakeNotification, createAssignmentNotification, createConsultationReadyNotification, createBranchManagerNotification } from './notifications';
+import { formatSubmittedAt } from './dateTime';
 import { fetchNotifications, insertNotification, markNotificationRead, markNotificationsRead } from './lib/notificationsApi';
 import { fetchCounselorStudents, updateCounselorStudent, insertCounselorStudent } from './lib/counselorStudentsApi';
 import { fetchStudents, insertStudent, updateStudent } from './lib/studentsApi';
 import { fetchCounselors, insertCounselor, updateCounselor, deleteCounselor } from './lib/counselorsApi';
 import { fetchApplications, updateApplication, insertApplication } from './lib/applicationsApi';
 import { fetchStaff, insertStaff, updateStaff, deleteStaff } from './lib/staffApi';
-import { fetchBranchStats, fetchActivityFeed, fetchAggregatedBranchStats, DEFAULT_BRANCH_STATS, DEFAULT_AGGREGATED_BRANCH_STATS, type BranchStats, type AggregatedBranchStats } from './lib/branchOverviewApi';
+import { fetchAggregatedBranchStats, DEFAULT_AGGREGATED_BRANCH_STATS, type AggregatedBranchStats } from './lib/branchOverviewApi';
 import { fetchBranches, insertBranch, updateBranch, deleteBranch } from './lib/branchesApi';
 import { subscribeToTable } from './lib/realtimeSubscribe';
 
@@ -50,8 +51,6 @@ export default function App() {
   const [commissions, setCommissions] = useState<CommissionRecord[]>(MOCK_COMMISSIONS);
   const [partners, setPartners] = useState<Partner[]>(MOCK_PARTNERS);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
-  const [branchStats, setBranchStats] = useState<BranchStats>(DEFAULT_BRANCH_STATS);
-  const [activityFeed, setActivityFeed] = useState<ActivityEntry[]>([]);
   const [companyStats, setCompanyStats] = useState<AggregatedBranchStats>(DEFAULT_AGGREGATED_BRANCH_STATS);
 
   useEffect(() => {
@@ -118,25 +117,6 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    const load = () =>
-      fetchActivityFeed()
-        .then(setActivityFeed)
-        .catch((err) => console.error('Failed to load activity_feed from Supabase', err));
-    load();
-    return subscribeToTable('activity_feed', load);
-  }, []);
-
-  useEffect(() => {
-    if (!user?.branch) return;
-    const load = () =>
-      fetchBranchStats(user.branch)
-        .then(setBranchStats)
-        .catch((err) => console.error('Failed to load branch_stats from Supabase', err));
-    load();
-    return subscribeToTable('branch_stats', load);
-  }, [user?.branch]);
-
-  useEffect(() => {
     const branchNames = branches.map((b) => b.name);
     const load = () =>
       fetchAggregatedBranchStats(branchNames)
@@ -160,10 +140,7 @@ export default function App() {
     const newStudent: IntakeStudent = {
       id: `s${Date.now()}`,
       ...data,
-      submittedAt: new Date().toLocaleString('en-AU', {
-        year: 'numeric', month: '2-digit', day: '2-digit',
-        hour: '2-digit', minute: '2-digit', hour12: true,
-      }),
+      submittedAt: formatSubmittedAt(new Date()),
       status: 'New',
       assignedCounselor: null,
       branch: user?.branch ?? '',
@@ -171,8 +148,12 @@ export default function App() {
     setStudents((prev) => [newStudent, ...prev]);
     insertStudent(newStudent).catch((err) => console.error('Failed to insert student in Supabase', err));
     const notification = createIntakeNotification(newStudent.name, newStudent.country, newStudent.purpose, newStudent.branch);
-    setNotifications((prev) => [notification, ...prev]);
+    const managerNotification = createBranchManagerNotification(
+      'new-intake', newStudent.name, 'New intake from ', ` — ${newStudent.country}, ${newStudent.purpose}`, newStudent.branch, 'students'
+    );
+    setNotifications((prev) => [managerNotification, notification, ...prev]);
     insertNotification(notification).catch((err) => console.error('Failed to insert notification in Supabase', err));
+    insertNotification(managerNotification).catch((err) => console.error('Failed to insert notification in Supabase', err));
   };
 
   const handleAssign = (studentId: string, counselorName: string) => {
@@ -189,8 +170,12 @@ export default function App() {
     const student = students.find((s) => s.id === studentId);
     if (student) {
       const notification = createAssignmentNotification(student.name, student.country, student.purpose, counselorName);
-      setNotifications((prev) => [notification, ...prev]);
+      const managerNotification = createBranchManagerNotification(
+        'assigned-to-counselor', student.name, '', ` assigned to ${counselorName} — ${student.country}, ${student.purpose}`, student.branch, 'students'
+      );
+      setNotifications((prev) => [managerNotification, notification, ...prev]);
       insertNotification(notification).catch((err) => console.error('Failed to insert notification in Supabase', err));
+      insertNotification(managerNotification).catch((err) => console.error('Failed to insert notification in Supabase', err));
 
       const newCounselorStudent: CounselorStudent = {
         id: `cs${Date.now()}`,
@@ -235,8 +220,12 @@ export default function App() {
       const student = counselorStudents.find((s) => s.id === id);
       if (student) {
         const notification = createConsultationReadyNotification(student.name, user?.branch ?? '');
-        setNotifications((prev) => [notification, ...prev]);
+        const managerNotification = createBranchManagerNotification(
+          'consultation-ready', student.name, '', ' ready for application — consultation complete', user?.branch ?? '', 'applications'
+        );
+        setNotifications((prev) => [managerNotification, notification, ...prev]);
         insertNotification(notification).catch((err) => console.error('Failed to insert notification in Supabase', err));
+        insertNotification(managerNotification).catch((err) => console.error('Failed to insert notification in Supabase', err));
 
         const now = new Date();
         const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec'];
@@ -368,6 +357,16 @@ export default function App() {
 
   const branchNames = useMemo(() => branches.map((b) => b.name), [branches]);
 
+  // Branch Manager's Staff page is scoped to their own branch and to branch-level roles —
+  // company-wide roles (Super Admin/Marketing/Finance) never belong to a single branch, so
+  // they're excluded even in the unlikely case their `branch` value collides with this one.
+  const branchStaff = useMemo(() => {
+    if (!user || user.role !== 'branch_manager') return staff;
+    return staff.filter(
+      (s) => s.branch === user.branch && s.role !== 'Super Admin' && s.role !== 'Marketing' && s.role !== 'Finance'
+    );
+  }, [staff, user]);
+
   const upcomingConsultations = useMemo(() => {
     const pending = counselorStudents.filter((s) => s.consultationStatus !== 'Consultation Complete');
     if (user?.role === 'counselor') {
@@ -405,10 +404,11 @@ export default function App() {
           <BranchManagerOverview
             branch={user.branch}
             students={students}
+            counselorStudents={counselorStudents}
             applications={applications}
             counselors={counselors}
-            stats={branchStats}
-            activityFeed={activityFeed}
+            staff={staff}
+            notifications={notifications}
           />
         );
       if (user.role === 'receptionist')
@@ -491,12 +491,13 @@ export default function App() {
     if (activeKey === 'staff')
       return (
         <StaffManagement
-          staff={staff}
+          staff={branchStaff}
           onAddStaff={handleAddStaff}
           onUpdateStaff={handleUpdateStaff}
           onRemoveStaff={handleRemoveStaff}
           branches={branchNames}
           showBranchFilter={isSuperAdmin}
+          currentUserEmail={user.email}
         />
       );
     if (activeKey === 'reports')
