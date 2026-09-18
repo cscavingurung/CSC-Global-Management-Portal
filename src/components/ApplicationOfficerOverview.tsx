@@ -1,19 +1,16 @@
 import { useMemo } from 'react';
 import { FileText, Send, CheckCircle2, AlertTriangle, type LucideIcon } from 'lucide-react';
-import { ApplicationRecord, ApplicationStatus } from '../types';
-import { daysBetween, daysInCurrentStatus as computeDaysInCurrentStatus, latestStatusHistoryDate, monthKey, parseHistoryDate } from '../applicationHistory';
+import { ApplicationRecord } from '../types';
+import {
+  getClientStage, getStatusTone, STATUS_TONE_STYLES,
+  daysInCurrentStatus, latestActivityDate, recentActivity, monthKey,
+  isVisaApproved, isVisaRefused, isClientInProgress,
+} from '../clientPipeline';
 
 interface ApplicationOfficerOverviewProps {
   branch: string;
   applications: ApplicationRecord[];
 }
-
-const STATUS_STYLES: Record<ApplicationStatus, string> = {
-  Preparation: 'bg-gray-100 text-gray-600',
-  Lodgement: 'bg-navy/10 text-navy',
-  Success: 'bg-green-100 text-green-700',
-  Refused: 'bg-red-100 text-red-700',
-};
 
 const STALE_THRESHOLD_DAYS = 7;
 
@@ -34,16 +31,8 @@ interface ActionRow {
   notYetStarted: boolean;
 }
 
-interface ActivityRow {
-  key: string;
-  name: string;
-  from: ApplicationStatus;
-  to: ApplicationStatus;
-  date: Date;
-}
-
 function formatRelativeDay(date: Date, now: Date): string {
-  const days = daysBetween(date, now);
+  const days = Math.round((now.getTime() - date.getTime()) / (24 * 60 * 60 * 1000));
   if (days <= 0) return 'Today';
   if (days === 1) return '1 day ago';
   return `${days} days ago`;
@@ -55,90 +44,67 @@ export default function ApplicationOfficerOverview({ branch, applications }: App
     [applications, branch]
   );
 
-  const now = useMemo(() => latestStatusHistoryDate(branchApplications), [branchApplications]);
+  const now = useMemo(() => latestActivityDate(branchApplications), [branchApplications]);
 
-  const daysInCurrentStatus = useMemo(() => {
-    return (a: ApplicationRecord): number => computeDaysInCurrentStatus(a, now);
-  }, [now]);
-
-  const preparation = useMemo(() => branchApplications.filter((a) => a.status === 'Preparation'), [branchApplications]);
-  const lodgement = useMemo(() => branchApplications.filter((a) => a.status === 'Lodgement'), [branchApplications]);
+  const activeClients = useMemo(() => branchApplications.filter(isClientInProgress), [branchApplications]);
+  const offerStage = useMemo(() => activeClients.filter((a) => getClientStage(a) === 'Offer'), [activeClients]);
+  const visaStage = useMemo(() => activeClients.filter((a) => getClientStage(a) === 'Visa'), [activeClients]);
 
   const actionRequired = useMemo<ActionRow[]>(() => {
-    return preparation
+    return offerStage
       .map((a) => {
-        const daysInStatus = daysInCurrentStatus(a);
+        const daysInStatus = daysInCurrentStatus(a, now);
         return {
           id: a.id,
           name: a.name,
           country: a.country,
           purpose: a.purpose,
           daysInStatus,
-          notYetStarted: daysInStatus === 0,
+          notYetStarted: a.offerApplications.length === 0,
         };
       })
       .sort((a, b) => {
         if (a.notYetStarted !== b.notYetStarted) return a.notYetStarted ? -1 : 1;
         return b.daysInStatus - a.daysInStatus;
       });
-  }, [preparation, daysInCurrentStatus]);
+  }, [offerStage, now]);
 
-  const recentActivity = useMemo<ActivityRow[]>(() => {
-    const rows: ActivityRow[] = [];
-    branchApplications.forEach((a) => {
-      for (let i = 1; i < a.statusHistory.length; i++) {
-        const date = parseHistoryDate(a.statusHistory[i].date);
-        if (!date) continue;
-        rows.push({
-          key: `${a.id}-${i}`,
-          name: a.name,
-          from: a.statusHistory[i - 1].status,
-          to: a.statusHistory[i].status,
-          date,
-        });
-      }
-    });
-    return rows.sort((a, b) => b.date.getTime() - a.date.getTime()).slice(0, 5);
-  }, [branchApplications]);
+  const activity = useMemo(() => recentActivity(branchApplications, 5), [branchApplications]);
 
   const stats = useMemo<StatCardDef[]>(() => {
-    const newToday = preparation.filter((a) => daysInCurrentStatus(a) === 0).length;
-    const oldestLodged = lodgement.reduce((max, a) => Math.max(max, daysInCurrentStatus(a)), 0);
-
     const nowMonthKey = monthKey(now);
     const decidedThisMonth = branchApplications.filter((a) => {
-      if (a.status !== 'Success' && a.status !== 'Refused') return false;
-      const entry = a.statusHistory.find((h) => h.status === a.status);
-      const d = entry ? parseHistoryDate(entry.date) : null;
-      return d !== null && monthKey(d) === nowMonthKey;
+      const outcomeDate = a.visaApplication?.outcomeDate;
+      if (!outcomeDate || (!isVisaApproved(a) && !isVisaRefused(a))) return false;
+      return monthKey(new Date(outcomeDate)) === nowMonthKey;
     });
-    const granted = decidedThisMonth.filter((a) => a.status === 'Success').length;
-    const refused = decidedThisMonth.filter((a) => a.status === 'Refused').length;
+    const approved = decidedThisMonth.filter(isVisaApproved).length;
+    const refused = decidedThisMonth.filter(isVisaRefused).length;
 
-    const needingAttention = preparation.filter((a) => daysInCurrentStatus(a) >= STALE_THRESHOLD_DAYS);
-    const longestStuck = needingAttention.reduce((max, a) => Math.max(max, daysInCurrentStatus(a)), 0);
+    const needingAttention = activeClients.filter((a) => daysInCurrentStatus(a, now) >= STALE_THRESHOLD_DAYS);
+    const longestStuck = needingAttention.reduce((max, a) => Math.max(max, daysInCurrentStatus(a, now)), 0);
 
     return [
       {
-        key: 'preparation',
+        key: 'offer',
         icon: FileText,
-        value: String(preparation.length),
-        label: 'In Preparation',
-        trend: newToday === 0 ? 'None new today' : `${newToday} new today`,
+        value: String(offerStage.length),
+        label: 'In Offer Stage',
+        trend: offerStage.length === 0 ? 'Nothing in progress' : `${offerStage.filter((a) => a.offerApplications.length === 0).length} not yet started`,
       },
       {
-        key: 'lodged',
+        key: 'visa',
         icon: Send,
-        value: String(lodgement.length),
-        label: 'Lodged',
-        trend: lodgement.length === 0 ? 'None awaiting decision' : `Oldest: ${oldestLodged} day${oldestLodged === 1 ? '' : 's'}`,
+        value: String(visaStage.length),
+        label: 'In Visa Stage',
+        trend: visaStage.length === 0 ? 'None in visa stage' : `${visaStage.filter((a) => a.visaApplication === null).length} not yet started`,
       },
       {
         key: 'decided',
         icon: CheckCircle2,
         value: String(decidedThisMonth.length),
         label: 'Decided This Month',
-        trend: decidedThisMonth.length === 0 ? 'None decided yet' : `${granted} granted, ${refused} refused`,
+        trend: decidedThisMonth.length === 0 ? 'None decided yet' : `${approved} approved, ${refused} refused`,
       },
       {
         key: 'attention',
@@ -148,14 +114,14 @@ export default function ApplicationOfficerOverview({ branch, applications }: App
         trend: needingAttention.length === 0 ? 'Nothing overdue' : `Longest stuck: ${longestStuck} day${longestStuck === 1 ? '' : 's'}`,
       },
     ];
-  }, [preparation, lodgement, branchApplications, now, daysInCurrentStatus]);
+  }, [offerStage, visaStage, activeClients, branchApplications, now]);
 
   return (
     <div className="space-y-6">
       {/* Welcome banner */}
       <div className="bg-navy rounded-2xl p-6 lg:p-8 text-white">
         <h2 className="text-xl lg:text-2xl font-semibold">Welcome back</h2>
-        <p className="text-white/60 text-sm mt-1">Here's your application pipeline today.</p>
+        <p className="text-white/60 text-sm mt-1">Here's your client pipeline today.</p>
       </div>
 
       {/* Stat cards */}
@@ -180,7 +146,7 @@ export default function ApplicationOfficerOverview({ branch, applications }: App
       {/* Action required + recent activity */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="stat-card">
-          <h3 className="text-base font-semibold text-navy mb-4">Action Required</h3>
+          <h3 className="text-base font-semibold text-navy mb-4">Action Required — Offer Stage</h3>
           {actionRequired.length > 0 ? (
             <div className="space-y-0">
               {actionRequired.map((row) => {
@@ -192,11 +158,11 @@ export default function ApplicationOfficerOverview({ branch, applications }: App
                       <p className="text-xs text-gray-500 truncate">{row.country} — {row.purpose}</p>
                     </div>
                     <div className="flex flex-col items-end gap-1 flex-shrink-0 ml-2">
-                      <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${STATUS_STYLES.Preparation}`}>
-                        Preparation
+                      <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-gray-100 text-gray-600">
+                        {row.notYetStarted ? 'Not Started' : 'Offer Stage'}
                       </span>
                       <span className={`text-xs ${stale ? 'text-amber-600 font-medium' : 'text-gray-400'}`}>
-                        {row.notYetStarted ? 'Handed over today' : `${row.daysInStatus} day${row.daysInStatus === 1 ? '' : 's'} in Preparation`}
+                        {row.notYetStarted ? 'Handed over, no institution yet' : `${row.daysInStatus} day${row.daysInStatus === 1 ? '' : 's'} in current status`}
                       </span>
                     </div>
                   </div>
@@ -210,21 +176,21 @@ export default function ApplicationOfficerOverview({ branch, applications }: App
 
         <div className="stat-card">
           <h3 className="text-base font-semibold text-navy mb-4">Recent Activity</h3>
-          {recentActivity.length > 0 ? (
+          {activity.length > 0 ? (
             <div className="space-y-0">
-              {recentActivity.map((row) => (
-                <div key={row.key} className="flex items-center justify-between py-2.5 border-b border-grey-border last:border-0">
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-navy truncate mb-1">{row.name}</p>
-                    <p className="flex items-center gap-1.5 text-xs">
-                      <span className={`px-2 py-0.5 rounded-full font-medium ${STATUS_STYLES[row.from]}`}>{row.from}</span>
-                      <span className="text-gray-300">→</span>
-                      <span className={`px-2 py-0.5 rounded-full font-medium ${STATUS_STYLES[row.to]}`}>{row.to}</span>
-                    </p>
+              {activity.map((row) => {
+                const app = branchApplications.find((a) => a.name === row.name);
+                const tone = app ? getStatusTone(app) : 'progress';
+                return (
+                  <div key={row.key} className="flex items-center justify-between py-2.5 border-b border-grey-border last:border-0">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-navy truncate mb-1">{row.name}</p>
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_TONE_STYLES[tone]}`}>{row.description}</span>
+                    </div>
+                    <span className="text-xs text-gray-400 flex-shrink-0 ml-2 whitespace-nowrap">{formatRelativeDay(row.date, now)}</span>
                   </div>
-                  <span className="text-xs text-gray-400 flex-shrink-0 ml-2 whitespace-nowrap">{formatRelativeDay(row.date, now)}</span>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <p className="text-sm text-gray-400 text-center py-6">No recent activity.</p>
@@ -234,3 +200,4 @@ export default function ApplicationOfficerOverview({ branch, applications }: App
     </div>
   );
 }
+

@@ -1,9 +1,10 @@
 import { useState, useMemo } from 'react';
 import { Search, X, Eye, CalendarDays, FileText, ChevronDown } from 'lucide-react';
-import { CounselorStudent, ApplicationRecord, CollegeAppStatus, VisaStatus } from '../types';
+import { CounselorStudent, ApplicationRecord, OfferStatus, VisaStageStatus } from '../types';
 import StudentProfile from './StudentProfile';
 import DateRangeFilter from './DateRangeFilter';
 import { matchesDateRange } from '../dateFilter';
+import { getActiveOfferApplication } from '../clientPipeline';
 
 interface ConsultationsPageProps {
   students: CounselorStudent[];
@@ -11,53 +12,49 @@ interface ConsultationsPageProps {
   onUpdateStudent: (id: string, updates: Partial<CounselorStudent>) => void;
 }
 
-// A client can hold several college applications at once, so their overall offer
-// progress is the most advanced status among them, not any single application's.
-type OfferFilter = 'all' | 'none' | CollegeAppStatus;
-type VisaFilter = 'all' | 'none' | VisaStatus;
+type OfferFilter = 'all' | 'none' | OfferStatus;
+type VisaFilter = 'all' | 'none' | VisaStageStatus;
 
-const OFFER_STATUS_STYLES: Record<CollegeAppStatus, string> = {
-  'Preparing Documents': 'bg-gray-100 text-gray-600',
-  'Offer Received': 'bg-sky-100 text-sky-700',
-  'Accepted': 'bg-green-100 text-green-700',
-  'Declined': 'bg-red-100 text-red-700',
+const OFFER_STATUS_STYLES: Record<OfferStatus, string> = {
+  Enrolled: 'bg-gray-100 text-gray-600',
+  'Applied to Institution': 'bg-navy/10 text-navy',
+  'Offer Received': 'bg-green-100 text-green-700',
+  Rejected: 'bg-red-100 text-red-700',
 };
 
-const VISA_STATUS_STYLES: Record<VisaStatus, string> = {
-  Preparing: 'bg-gray-100 text-gray-600',
-  Lodged: 'bg-navy/10 text-navy',
-  Granted: 'bg-green-100 text-green-700',
-  Refused: 'bg-red-100 text-red-700',
+const VISA_STATUS_STYLES: Record<VisaStageStatus, string> = {
+  'Preparing Documents': 'bg-gray-100 text-gray-600',
+  'Ready for Visa': 'bg-navy/10 text-navy',
+  'Visa Applied': 'bg-navy/10 text-navy',
+  'Visa Approved': 'bg-green-100 text-green-700',
+  'Visa Refused': 'bg-red-100 text-red-700',
 };
 
 const OFFER_FILTER_OPTIONS: { value: OfferFilter; label: string }[] = [
   { value: 'all', label: 'All Offer Statuses' },
   { value: 'none', label: 'No Application Yet' },
-  { value: 'Preparing Documents', label: 'Preparing Documents' },
+  { value: 'Enrolled', label: 'Enrolled' },
+  { value: 'Applied to Institution', label: 'Applied to Institution' },
   { value: 'Offer Received', label: 'Offer Received' },
-  { value: 'Accepted', label: 'Accepted' },
-  { value: 'Declined', label: 'Declined' },
+  { value: 'Rejected', label: 'Rejected' },
 ];
 
 const VISA_FILTER_OPTIONS: { value: VisaFilter; label: string }[] = [
   { value: 'all', label: 'All Visa Statuses' },
   { value: 'none', label: 'No Application Yet' },
-  { value: 'Preparing', label: 'Preparing' },
-  { value: 'Lodged', label: 'Lodged' },
-  { value: 'Granted', label: 'Granted' },
-  { value: 'Refused', label: 'Refused' },
+  { value: 'Preparing Documents', label: 'Preparing Documents' },
+  { value: 'Ready for Visa', label: 'Ready for Visa' },
+  { value: 'Visa Applied', label: 'Visa Applied' },
+  { value: 'Visa Approved', label: 'Visa Approved' },
+  { value: 'Visa Refused', label: 'Visa Refused' },
 ];
 
-function getOfferStatus(app: ApplicationRecord | undefined): OfferFilter {
-  const cas = app?.collegeApplications ?? [];
-  if (cas.length === 0) return 'none';
-  if (cas.some((c) => c.status === 'Accepted')) return 'Accepted';
-  if (cas.some((c) => c.status === 'Offer Received')) return 'Offer Received';
-  if (cas.some((c) => c.status === 'Preparing Documents')) return 'Preparing Documents';
-  return 'Declined';
+function getOfferStatus(app: ApplicationRecord | undefined): 'none' | OfferStatus {
+  const active = app ? getActiveOfferApplication(app) : null;
+  return active ? active.status : 'none';
 }
 
-function getVisaStatus(app: ApplicationRecord | undefined): VisaFilter {
+function getVisaStatus(app: ApplicationRecord | undefined): 'none' | VisaStageStatus {
   return app?.visaApplication ? app.visaApplication.status : 'none';
 }
 
@@ -164,12 +161,20 @@ export default function ConsultationsPage({ students, applications, onUpdateStud
                     <span className="text-xs font-medium px-2 py-0.5 rounded-full flex-shrink-0 bg-green-100 text-green-700">
                       Proceeding
                     </span>
-                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full flex-shrink-0 ${offerStatus === 'none' ? 'bg-gray-100 text-gray-500' : OFFER_STATUS_STYLES[offerStatus]}`}>
-                      Offer: {offerStatus === 'none' ? 'Not Started' : offerStatus}
-                    </span>
-                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full flex-shrink-0 ${visaStatus === 'none' ? 'bg-gray-100 text-gray-500' : VISA_STATUS_STYLES[visaStatus]}`}>
-                      Visa: {visaStatus === 'none' ? 'Not Started' : visaStatus}
-                    </span>
+                    {app?.withdrawn ? (
+                      <span className="text-xs font-medium px-2 py-0.5 rounded-full flex-shrink-0 bg-gray-100 text-gray-500">
+                        Withdrawn
+                      </span>
+                    ) : (
+                      <>
+                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full flex-shrink-0 ${offerStatus === 'none' ? 'bg-gray-100 text-gray-500' : OFFER_STATUS_STYLES[offerStatus]}`}>
+                          Offer: {offerStatus === 'none' ? 'Not Started' : offerStatus}
+                        </span>
+                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full flex-shrink-0 ${visaStatus === 'none' ? 'bg-gray-100 text-gray-500' : VISA_STATUS_STYLES[visaStatus]}`}>
+                          Visa: {visaStatus === 'none' ? 'Not Started' : visaStatus}
+                        </span>
+                      </>
+                    )}
                   </div>
                   <div className="flex items-center gap-3 text-xs text-gray-500 mt-0.5">
                     <span>Completed: {s.completedDate}</span>

@@ -3,9 +3,9 @@ import {
   GraduationCap, CalendarDays, FileText, CheckCircle,
   ArrowUp, ArrowDown, ArrowUpDown, UserX, FileClock, TrendingDown, type LucideIcon,
 } from 'lucide-react';
-import { ApplicationStatus, Branch, IntakeStudent, CounselorStudent, ApplicationRecord, StaffMember } from '../types';
+import { Branch, IntakeStudent, CounselorStudent, ApplicationRecord, StaffMember } from '../types';
 import { parseSubmittedAt } from '../dateTime';
-import { daysInCurrentStatus, latestStatusHistoryDate } from '../applicationHistory';
+import { daysInCurrentStatus, latestActivityDate, isClientInProgress, getClientStatusLabel } from '../clientPipeline';
 import { computeBranchLiveStats, computeCompanyOverviewStats } from '../branchLiveStats';
 
 interface SuperAdminOverviewProps {
@@ -105,7 +105,7 @@ export default function SuperAdminOverview({ branches, staff, students, counselo
   // dataset has no live clock, so the latest timestamp anchors day counts.
   const now = useMemo(() => {
     const studentDates = students.map((s) => parseSubmittedAt(s.submittedAt)).filter((d): d is Date => d !== null);
-    const appNow = latestStatusHistoryDate(applications);
+    const appNow = latestActivityDate(applications);
     const all = [...studentDates, appNow];
     return all.reduce((latest, d) => (d > latest ? d : latest), all[0]);
   }, [students, applications]);
@@ -140,20 +140,21 @@ export default function SuperAdminOverview({ branches, staff, students, counselo
       });
     });
 
-    const staleAppsByBranch = new Map<string, Map<ApplicationStatus, { count: number; oldestDays: number }>>();
+    const staleAppsByBranch = new Map<string, Map<string, { count: number; oldestDays: number }>>();
     applications
-      .filter((a) => a.status === 'Preparation' || a.status === 'Lodgement')
+      .filter(isClientInProgress)
       .forEach((a) => {
         const days = daysInCurrentStatus(a, now);
         if (days < STALE_APPLICATION_DAYS) return;
+        const status = getClientStatusLabel(a);
         if (!staleAppsByBranch.has(a.branch)) staleAppsByBranch.set(a.branch, new Map());
         const statusMap = staleAppsByBranch.get(a.branch)!;
-        const existing = statusMap.get(a.status);
+        const existing = statusMap.get(status);
         if (existing) {
           existing.count += 1;
           existing.oldestDays = Math.max(existing.oldestDays, days);
         } else {
-          statusMap.set(a.status, { count: 1, oldestDays: days });
+          statusMap.set(status, { count: 1, oldestDays: days });
         }
       });
     staleAppsByBranch.forEach((statusMap, branch) => {

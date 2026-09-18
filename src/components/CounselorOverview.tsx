@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
 import { GraduationCap, Clock, CheckCircle, FileText, type LucideIcon } from 'lucide-react';
-import { ApplicationRecord, ApplicationStatus, ConsultationStatus, CounselorStudent } from '../types';
+import { ApplicationRecord, ConsultationStatus, CounselorStudent } from '../types';
 import { parseSubmittedAt, dateKey } from '../dateTime';
+import { getClientStage, getClientStatusLabel, getStatusTone, STATUS_TONE_STYLES, latestActivityDateForApp } from '../clientPipeline';
 
 interface CounselorOverviewProps {
   counselorName: string;
@@ -14,13 +15,6 @@ const CONSULTATION_STATUS_STYLES: Record<ConsultationStatus, string> = {
   'In Progress': 'bg-blue-100 text-blue-700',
   'Follow Up': 'bg-purple-100 text-purple-700',
   'Consultation Complete': 'bg-green-100 text-green-700',
-};
-
-const APPLICATION_STATUS_STYLES: Record<ApplicationStatus, string> = {
-  Preparation: 'bg-gray-100 text-gray-600',
-  Lodgement: 'bg-navy text-white',
-  Success: 'bg-green-100 text-green-700',
-  Refused: 'bg-red-100 text-red-700',
 };
 
 interface StatCardDef {
@@ -41,15 +35,6 @@ function prevMonthKey(dateStr: string): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 }
 
-// statusHistory entries are stored as "Sept 14" with no year (see mockData.ts) — the whole
-// app's mock data is fictionally set in 2026, so that's assumed here too.
-function latestHistoryDate(app: ApplicationRecord): Date | null {
-  const last = app.statusHistory[app.statusHistory.length - 1];
-  if (!last) return null;
-  const parsed = new Date(`${last.date}, 2026`);
-  return isNaN(parsed.getTime()) ? null : parsed;
-}
-
 export default function CounselorOverview({ counselorName, counselorStudents, applications }: CounselorOverviewProps) {
   const myStudents = useMemo(
     () => counselorStudents.filter((s) => s.assignedCounselor === counselorName),
@@ -60,7 +45,7 @@ export default function CounselorOverview({ counselorName, counselorStudents, ap
     () =>
       applications
         .filter((a) => a.counselor === counselorName)
-        .map((a) => ({ app: a, date: latestHistoryDate(a) }))
+        .map((a) => ({ app: a, date: latestActivityDateForApp(a) }))
         .sort((a, b) => (b.date?.getTime() ?? 0) - (a.date?.getTime() ?? 0))
         .map((x) => x.app),
     [applications, counselorName]
@@ -98,7 +83,7 @@ export default function CounselorOverview({ counselorName, counselorStudents, ap
     const completedTrend =
       completedDiff > 0 ? `+${completedDiff} vs last month` : completedDiff < 0 ? `${completedDiff} vs last month` : 'Same as last month';
 
-    const inLodgement = myApplications.filter((a) => a.status === 'Lodgement').length;
+    const inVisaStage = myApplications.filter((a) => getClientStage(a) === 'Visa').length;
 
     return [
       {
@@ -127,7 +112,7 @@ export default function CounselorOverview({ counselorName, counselorStudents, ap
         icon: FileText,
         value: String(myApplications.length),
         label: 'In Application',
-        trend: inLodgement === 0 ? 'None in lodgement' : `${inLodgement} in lodgement`,
+        trend: inVisaStage === 0 ? 'None in visa stage' : `${inVisaStage} in visa stage`,
       },
     ];
   }, [myStudents, myApplications, now]);
@@ -192,8 +177,8 @@ export default function CounselorOverview({ counselorName, counselorStudents, ap
                     <p className="text-sm font-medium text-navy truncate">{a.name}</p>
                     <p className="text-xs text-gray-500 truncate">{a.country} — {a.purpose}</p>
                   </div>
-                  <span className={`text-xs font-medium px-2.5 py-1 rounded-full flex-shrink-0 ml-2 ${APPLICATION_STATUS_STYLES[a.status]}`}>
-                    {a.status}
+                  <span className={`text-xs font-medium px-2.5 py-1 rounded-full flex-shrink-0 ml-2 ${STATUS_TONE_STYLES[getStatusTone(a)]}`}>
+                    {getClientStatusLabel(a)}
                   </span>
                 </div>
               ))}

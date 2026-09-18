@@ -79,39 +79,44 @@ export interface CounselorStudent {
   outcome: ConsultationOutcome;
 }
 
-export type ApplicationStatus = 'Preparation' | 'Lodgement' | 'Success' | 'Refused';
+// Stage 1 — one attempt at a single institution. A client can have several of these (one
+// per institution); a Rejected attempt stays in the array as history rather than being
+// removed, and the officer can add a new attempt to try a different institution.
+export type OfferStatus = 'Enrolled' | 'Applied to Institution' | 'Offer Received' | 'Rejected';
 
-export interface StatusHistoryEntry {
-  status: ApplicationStatus;
-  date: string;
-}
-
-export interface DocumentItem {
-  id: string;
-  name: string;
-  ready: boolean;
-}
-
-export type CollegeAppStatus = 'Preparing Documents' | 'Offer Received' | 'Accepted' | 'Declined';
-
-export interface CollegeApplication {
+export interface OfferApplication {
   id: string;
   institution: string;
-  course: string;
-  appliedDate: string;
-  status: CollegeAppStatus;
-  offerDate?: string;
-  documents: DocumentItem[];
-  notes: string;
+  status: OfferStatus;
+  /** Set when status moves to 'Applied to Institution'. */
+  appliedDate?: string;
+  /** Set when status reaches 'Offer Received' or 'Rejected'. */
+  outcomeDate?: string;
+  /** Date the current status was entered — powers "days in current status" staleness checks. */
+  statusUpdatedAt: string;
+  notes?: string;
 }
 
-export type VisaStatus = 'Preparing' | 'Lodged' | 'Granted' | 'Refused';
+// Stage 2 — unlocked once any OfferApplication reaches 'Offer Received'. Fixed 4-item
+// checklist only (no file uploads, no fee tracking — see project notes).
+export interface VisaChecklist {
+  noc: boolean;
+  medical: boolean;
+  financial: boolean;
+  policeReport: boolean;
+}
+
+export type VisaStageStatus = 'Preparing Documents' | 'Ready for Visa' | 'Visa Applied' | 'Visa Approved' | 'Visa Refused';
 
 export interface VisaApplication {
-  status: VisaStatus;
-  lodgementDate?: string;
+  status: VisaStageStatus;
+  checklist: VisaChecklist;
+  /** Set when status moves to 'Visa Applied'. */
+  appliedDate?: string;
+  /** Set when status reaches 'Visa Approved' or 'Visa Refused'. */
   outcomeDate?: string;
-  documents: DocumentItem[];
+  /** Date the current status was entered — powers "days in current status" staleness checks. */
+  statusUpdatedAt: string;
   notes: string;
 }
 
@@ -131,11 +136,12 @@ export interface ApplicationRecord {
   counselor: string;
   consultationDate: string;
   consultationNotes: string;
-  status: ApplicationStatus;
-  statusHistory: StatusHistoryEntry[];
   branch: string;
-  collegeApplications: CollegeApplication[];
+  offerApplications: OfferApplication[];
   visaApplication: VisaApplication | null;
+  /** The only way a client exits the pipeline — never automatic on a rejected/refused outcome. */
+  withdrawn: boolean;
+  withdrawnDate?: string;
 }
 
 export type StaffRole =

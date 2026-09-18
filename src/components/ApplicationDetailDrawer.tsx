@@ -1,75 +1,39 @@
-import { useState, useEffect } from 'react';
 import {
   ArrowLeft, User, Phone, Mail, Globe, Target, CalendarDays,
-  CheckCircle, AlertTriangle, Cake, Users, Heart, GraduationCap,
-  BookOpen, Briefcase, FileText,
+  Cake, Users, Heart, GraduationCap, BookOpen, Briefcase, FileText,
+  Building2, Calendar, CheckCircle, XCircle, UserX,
 } from 'lucide-react';
-import { ApplicationRecord, ApplicationStatus, StatusHistoryEntry } from '../types';
+import { ApplicationRecord, OfferStatus, VisaStageStatus } from '../types';
+import { getClientStatusLabel, getStatusTone, STATUS_TONE_STYLES, isVisaUnlocked, checklistCompleteCount } from '../clientPipeline';
 
 interface ApplicationDetailDrawerProps {
   application: ApplicationRecord;
   onClose: () => void;
-  onUpdate: (updates: Partial<ApplicationRecord>) => void;
 }
 
-const STATUS_OPTIONS: ApplicationStatus[] = ['Preparation', 'Lodgement', 'Success', 'Refused'];
-
-const STATUS_STYLES: Record<ApplicationStatus, string> = {
-  Preparation: 'bg-gray-100 text-gray-600 border-gray-200',
-  Lodgement: 'bg-navy/10 text-navy border-navy/20',
-  Success: 'bg-green-100 text-green-700 border-green-200',
-  Refused: 'bg-red-100 text-red-700 border-red-200',
+const OFFER_STATUS_STYLES: Record<OfferStatus, string> = {
+  Enrolled: 'bg-gray-100 text-gray-600',
+  'Applied to Institution': 'bg-navy/10 text-navy',
+  'Offer Received': 'bg-green-100 text-green-700',
+  Rejected: 'bg-red-100 text-red-700',
 };
 
-const TERMINAL_STATUSES: ApplicationStatus[] = ['Success', 'Refused'];
+const VISA_STATUS_STYLES: Record<VisaStageStatus, string> = {
+  'Preparing Documents': 'bg-gray-100 text-gray-600',
+  'Ready for Visa': 'bg-navy/10 text-navy',
+  'Visa Applied': 'bg-navy/10 text-navy',
+  'Visa Approved': 'bg-green-100 text-green-700',
+  'Visa Refused': 'bg-red-100 text-red-700',
+};
 
-export default function ApplicationDetailDrawer({ application, onClose, onUpdate }: ApplicationDetailDrawerProps) {
-  const [status, setStatus] = useState<ApplicationStatus>(application.status);
-  const [pendingStatus, setPendingStatus] = useState<ApplicationStatus | null>(null);
-  const [showToast, setShowToast] = useState(false);
-  const [toastMessage, setToastMessage] = useState('');
-
-  useEffect(() => {
-    const handleEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
-    window.addEventListener('keydown', handleEsc);
-    return () => window.removeEventListener('keydown', handleEsc);
-  }, [onClose]);
-
-  useEffect(() => {
-    if (showToast) {
-      const timer = setTimeout(() => setShowToast(false), 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [showToast]);
-
-  const applyStatusChange = (newStatus: ApplicationStatus) => {
-    const now = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    const historyEntry: StatusHistoryEntry = { status: newStatus, date: now };
-    setStatus(newStatus);
-    onUpdate({
-      status: newStatus,
-      statusHistory: [...application.statusHistory, historyEntry],
-    });
-    setToastMessage(`Status updated to ${newStatus}`);
-    setShowToast(true);
-  };
-
-  const handleStatusChange = (newStatus: ApplicationStatus) => {
-    if (newStatus === status) return;
-    if (TERMINAL_STATUSES.includes(newStatus)) {
-      setPendingStatus(newStatus);
-    } else {
-      applyStatusChange(newStatus);
-    }
-  };
-
-  const confirmTerminalStatus = () => {
-    if (pendingStatus) {
-      applyStatusChange(pendingStatus);
-      setPendingStatus(null);
-    }
-  };
-
+// Read-only view for Branch Manager / Super Admin / Finance — the stage-by-stage editing
+// workflow (add institution, tick documents, move statuses) lives in ClientProfile and is
+// the Application Officer's job; this is visibility only.
+export default function ApplicationDetailDrawer({ application, onClose }: ApplicationDetailDrawerProps) {
+  const statusLabel = getClientStatusLabel(application);
+  const tone = getStatusTone(application);
+  const unlocked = isVisaUnlocked(application);
+  const visa = application.visaApplication;
   const initials = application.name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase();
 
   const detailRows = [
@@ -115,8 +79,8 @@ export default function ApplicationDetailDrawer({ application, onClose, onUpdate
               <div className="min-w-0 flex-1">
                 <h2 className="text-lg font-semibold text-navy truncate">{application.name}</h2>
                 <div className="flex items-center gap-2 flex-wrap mt-1.5">
-                  <span className={`text-xs font-medium px-2.5 py-1 rounded-full border ${STATUS_STYLES[status]}`}>
-                    {status}
+                  <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${STATUS_TONE_STYLES[tone]}`}>
+                    {statusLabel}
                   </span>
                 </div>
               </div>
@@ -158,96 +122,68 @@ export default function ApplicationDetailDrawer({ application, onClose, onUpdate
             </div>
           </div>
 
-          {/* Application status */}
-          <div className="bg-white rounded-2xl border border-grey-border p-6">
-            <h3 className="text-sm font-semibold text-navy mb-4">Application Status</h3>
-            <div className="grid grid-cols-2 gap-2">
-              {STATUS_OPTIONS.map((opt) => (
-                <button
-                  key={opt}
-                  onClick={() => handleStatusChange(opt)}
-                  className={`flex items-center gap-2.5 px-4 py-2.5 rounded-lg border text-sm font-medium transition-all ${
-                    status === opt ? STATUS_STYLES[opt] : 'border-grey-border text-gray-500 hover:bg-grey-bg'
-                  }`}
-                >
-                  <span className={`w-2 h-2 rounded-full flex-shrink-0 ${status === opt ? 'bg-current' : 'bg-gray-300'}`} />
-                  <span className="truncate">{opt}</span>
-                  {status === opt && <CheckCircle className="ml-auto flex-shrink-0" size={15} />}
-                </button>
-              ))}
+          {application.withdrawn && (
+            <div className="bg-gray-100 border border-grey-border rounded-2xl px-5 py-4 flex items-center gap-3">
+              <UserX className="text-gray-500 flex-shrink-0" size={18} />
+              <p className="text-sm text-gray-600">
+                This client was marked as withdrawn{application.withdrawnDate ? ` on ${application.withdrawnDate}` : ''}.
+              </p>
             </div>
-          </div>
+          )}
 
-          {/* Status history */}
+          {/* Offer application history */}
           <div className="bg-white rounded-2xl border border-grey-border p-6">
-            <h3 className="text-sm font-semibold text-navy mb-4">Status History</h3>
-            <div className="relative pl-6">
-              <div className="absolute left-[7px] top-2 bottom-2 w-px bg-grey-border" />
-              <div className="space-y-4">
-                {[...application.statusHistory].reverse().map((entry, idx) => (
-                  <div key={idx} className="relative">
-                    <div className={`absolute -left-6 top-0.5 w-3.5 h-3.5 rounded-full border-2 border-white ${
-                      entry.status === 'Success' ? 'bg-green-500'
-                      : entry.status === 'Refused' ? 'bg-red-500'
-                      : entry.status === 'Lodgement' ? 'bg-navy'
-                      : 'bg-gray-400'
-                    }`} />
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-navy">{entry.status}</span>
-                      <span className="text-xs text-gray-400">{entry.date}</span>
+            <h3 className="text-sm font-semibold text-navy mb-4">Offer Application History</h3>
+            {application.offerApplications.length === 0 ? (
+              <p className="text-sm text-gray-400">No offer applications yet.</p>
+            ) : (
+              <div className="space-y-3">
+                {[...application.offerApplications].reverse().map((o) => (
+                  <div key={o.id} className="flex items-center gap-3 border border-grey-border rounded-xl px-4 py-3">
+                    <div className="w-9 h-9 rounded-lg bg-navy/10 flex items-center justify-center flex-shrink-0">
+                      <Building2 className="text-navy" size={16} />
                     </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-navy truncate">{o.institution}</p>
+                      {o.appliedDate && <p className="text-xs text-gray-400">Applied {o.appliedDate}</p>}
+                    </div>
+                    <span className={`text-xs font-medium px-2.5 py-1 rounded-full flex-shrink-0 ${OFFER_STATUS_STYLES[o.status]}`}>{o.status}</span>
                   </div>
                 ))}
               </div>
-            </div>
+            )}
           </div>
+
+          {/* Visa application */}
+          {unlocked && (
+            <div className="bg-white rounded-2xl border border-grey-border p-6">
+              <h3 className="text-sm font-semibold text-navy mb-4">Visa Application</h3>
+              {!visa ? (
+                <p className="text-sm text-gray-400">Not started yet.</p>
+              ) : (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className={`text-xs font-semibold px-3 py-1.5 rounded-full ${VISA_STATUS_STYLES[visa.status]}`}>{visa.status}</span>
+                    <span className="text-xs text-gray-500">{checklistCompleteCount(visa.checklist)} of 4 documents complete</span>
+                  </div>
+                  {(visa.appliedDate || visa.outcomeDate) && (
+                    <div className="flex flex-wrap gap-4 text-xs text-gray-500">
+                      {visa.appliedDate && <span className="flex items-center gap-1.5"><Calendar size={13} />Applied: {visa.appliedDate}</span>}
+                      {visa.outcomeDate && (
+                        <span className={`flex items-center gap-1.5 font-medium ${visa.status === 'Visa Approved' ? 'text-green-700' : 'text-red-700'}`}>
+                          {visa.status === 'Visa Approved' ? <CheckCircle size={13} /> : <XCircle size={13} />}
+                          Outcome: {visa.outcomeDate}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
         </div>
       </div>
-
-      {/* Terminal status confirmation dialog */}
-      {pendingStatus && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-navy-dark/60" onClick={() => setPendingStatus(null)} />
-          <div className="relative bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6">
-            <div className={`w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-4 ${
-              pendingStatus === 'Success' ? 'bg-green-50' : 'bg-red-50'
-            }`}>
-              <AlertTriangle className={pendingStatus === 'Success' ? 'text-green-600' : 'text-red-600'} size={26} />
-            </div>
-            <h3 className="text-base font-semibold text-navy text-center mb-2">
-              Mark this application as {pendingStatus}?
-            </h3>
-            <p className="text-sm text-gray-500 text-center mb-6">
-              This is usually a final status and cannot be easily reversed.
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setPendingStatus(null)}
-                className="flex-1 py-2.5 border border-grey-border rounded-lg text-sm font-medium text-navy hover:bg-grey-bg transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={confirmTerminalStatus}
-                className={`flex-1 py-2.5 rounded-lg text-sm font-semibold text-white transition-colors ${
-                  pendingStatus === 'Success' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'
-                }`}
-              >
-                Confirm
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Toast */}
-      {showToast && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[70] bg-green-600 text-white px-5 py-3 rounded-xl shadow-lg flex items-center gap-2 text-sm font-medium">
-          <CheckCircle size={18} />
-          {toastMessage}
-        </div>
-      )}
     </div>
   );
 }

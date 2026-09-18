@@ -7,7 +7,7 @@ import {
 import { ActivityEntry, AppNotification, ApplicationRecord, Counselor, CounselorStudent, IntakeStudent, StaffMember } from '../types';
 import { parseSubmittedAt } from '../dateTime';
 import { formatRelativeTime } from '../notifications';
-import { daysInCurrentStatus, latestStatusHistoryDate } from '../applicationHistory';
+import { daysInCurrentStatus, latestActivityDate, isClientInProgress, getClientStatusLabel } from '../clientPipeline';
 import { computeBranchOverviewStats } from '../branchLiveStats';
 
 interface BranchManagerOverviewProps {
@@ -97,7 +97,7 @@ export default function BranchManagerOverview({ branch, students, counselorStude
     const studentDates = students
       .map((s) => parseSubmittedAt(s.submittedAt))
       .filter((d): d is Date => d !== null);
-    const appNow = latestStatusHistoryDate(branchApplications);
+    const appNow = latestActivityDate(branchApplications);
     const all = [...studentDates, appNow];
     return all.reduce((latest, d) => (d > latest ? d : latest), all[0]);
   }, [students, branchApplications]);
@@ -125,17 +125,18 @@ export default function BranchManagerOverview({ branch, students, counselorStude
       });
 
     branchApplications
-      .filter((a) => a.status === 'Preparation' || a.status === 'Lodgement')
+      .filter(isClientInProgress)
       .forEach((a) => {
         const days = daysInCurrentStatus(a, now);
         if (days < STALE_APPLICATION_DAYS) return;
+        const status = getClientStatusLabel(a);
         rows.push({
           id: `application-${a.id}`,
           icon: FileClock,
           iconColor: 'bg-navy/5 text-navy',
           name: a.name,
-          typeLabel: `Application — ${a.status}`,
-          timeText: `${days} day${days === 1 ? '' : 's'} in ${a.status}`,
+          typeLabel: `Application — ${status}`,
+          timeText: `${days} day${days === 1 ? '' : 's'} in ${status}`,
           severity: days,
         });
       });

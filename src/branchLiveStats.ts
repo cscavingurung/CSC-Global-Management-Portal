@@ -1,5 +1,6 @@
 import { StaffMember, IntakeStudent, ApplicationRecord, CounselorStudent } from './types';
 import { parseSubmittedAt } from './dateTime';
+import { isClientInProgress, isVisaApproved, isVisaRefused } from './clientPipeline';
 
 export interface BranchLiveStats {
   staffCount: number;
@@ -21,9 +22,9 @@ export function computeBranchLiveStats(
   return {
     staffCount: staff.filter((s) => s.branch === branchName).length,
     activeStudents: students.filter((s) => s.branch === branchName).length,
-    applicationsInProgress: branchApplications.filter((a) => a.status === 'Preparation' || a.status === 'Lodgement').length,
-    visasGranted: branchApplications.filter((a) => a.status === 'Success').length,
-    visasRefused: branchApplications.filter((a) => a.status === 'Refused').length,
+    applicationsInProgress: branchApplications.filter(isClientInProgress).length,
+    visasGranted: branchApplications.filter(isVisaApproved).length,
+    visasRefused: branchApplications.filter(isVisaRefused).length,
   };
 }
 
@@ -62,9 +63,9 @@ export function computeBranchOverviewStats(
   return {
     totalStudentsThisMonth,
     activeConsultations,
-    applicationsInProgress: branchApplications.filter((a) => a.status === 'Preparation' || a.status === 'Lodgement').length,
-    decidedGranted: branchApplications.filter((a) => a.status === 'Success').length,
-    decidedRefused: branchApplications.filter((a) => a.status === 'Refused').length,
+    applicationsInProgress: branchApplications.filter(isClientInProgress).length,
+    decidedGranted: branchApplications.filter(isVisaApproved).length,
+    decidedRefused: branchApplications.filter(isVisaRefused).length,
   };
 }
 
@@ -88,8 +89,8 @@ export function computeCompanyOverviewStats(
   return {
     totalStudentsThisMonth,
     activeConsultations,
-    applicationsInProgress: applications.filter((a) => a.status === 'Preparation' || a.status === 'Lodgement').length,
-    decidedGranted: applications.filter((a) => a.status === 'Success').length,
-    decidedRefused: applications.filter((a) => a.status === 'Refused').length,
+    applicationsInProgress: applications.filter(isClientInProgress).length,
+    decidedGranted: applications.filter(isVisaApproved).length,
+    decidedRefused: applications.filter(isVisaRefused).length,
   };
 }

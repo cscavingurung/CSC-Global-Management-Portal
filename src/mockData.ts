@@ -1,4 +1,4 @@
-import { Role, NavConfig, Counselor, ApplicationRecord, StaffMember, StaffRole, ActivityEntry, Branch, CommissionRecord, Partner, AppNotification } from './types';
+import { Role, NavConfig, Counselor, ApplicationRecord, OfferApplication, VisaApplication, StaffMember, StaffRole, ActivityEntry, Branch, CommissionRecord, Partner, AppNotification } from './types';
 
 export const ROLE_LABELS: Record<Role, string> = {
   super_admin: 'Super Admin',
@@ -69,6 +69,8 @@ export const NAV_CONFIG: NavConfig = {
   application_officer: [
     { key: 'overview', label: 'Dashboard', icon: 'LayoutDashboard' },
     { key: 'applications', label: 'Clients', icon: 'FileText' },
+    { key: 'offer-applications', label: 'Offer Applications', icon: 'Building2' },
+    { key: 'visa-applications', label: 'Visa Applications', icon: 'Stamp' },
     { key: 'status-updates', label: 'Status Updates', icon: 'RefreshCw' },
   ],
 };
@@ -101,6 +103,17 @@ export const MOCK_COUNSELORS: Counselor[] = [
   { id: 'c6', name: 'Milan Gurung', country: 'Australia', activeAssignments: 10, availability: 'Available' },
 ];
 
+function offer(id: string, institution: string, status: OfferApplication['status'], statusUpdatedAt: string, opts?: { appliedDate?: string; outcomeDate?: string; notes?: string }): OfferApplication {
+  return { id, institution, status, statusUpdatedAt, ...opts };
+}
+
+function visa(status: VisaApplication['status'], statusUpdatedAt: string, checklist: VisaApplication['checklist'], opts?: { appliedDate?: string; outcomeDate?: string; notes?: string }): VisaApplication {
+  return { status, statusUpdatedAt, checklist, notes: opts?.notes ?? '', appliedDate: opts?.appliedDate, outcomeDate: opts?.outcomeDate };
+}
+
+const NO_DOCS = { noc: false, medical: false, financial: false, policeReport: false };
+const ALL_DOCS = { noc: true, medical: true, financial: true, policeReport: true };
+
 export const MOCK_APPLICATIONS: ApplicationRecord[] = [
   {
     id: 'a1',
@@ -112,14 +125,12 @@ export const MOCK_APPLICATIONS: ApplicationRecord[] = [
     counselor: 'David Chen',
     consultationDate: '2026-09-13',
     consultationNotes: 'Client has valid job offer from Sydney employer. Recommended 482 visa (temporary skill shortage). All documents verified and ready for lodgement.',
-    status: 'Lodgement',
-    statusHistory: [
-      { status: 'Preparation', date: 'Sept 13' },
-      { status: 'Lodgement', date: 'Sept 14' },
-    ],
     branch: 'Sydney CBD',
-    collegeApplications: [],
-    visaApplication: null,
+    offerApplications: [
+      offer('a1-o1', 'Holmes Institute', 'Offer Received', '2026-09-14', { appliedDate: '2026-09-13', outcomeDate: '2026-09-14' }),
+    ],
+    visaApplication: visa('Preparing Documents', '2026-09-14', { ...NO_DOCS, noc: true, medical: true }),
+    withdrawn: false,
   },
   {
     id: 'a2',
@@ -131,13 +142,12 @@ export const MOCK_APPLICATIONS: ApplicationRecord[] = [
     counselor: 'David Chen',
     consultationDate: '2026-09-14',
     consultationNotes: 'Client applying for US B1/B2 tourist visa. Travel planned for December. Documents collected: passport, bank statements, employment letter.',
-    status: 'Preparation',
-    statusHistory: [
-      { status: 'Preparation', date: 'Sept 14' },
-    ],
     branch: 'Sydney CBD',
-    collegeApplications: [],
+    offerApplications: [
+      offer('a2-o1', 'William Angliss Institute', 'Enrolled', '2026-09-14'),
+    ],
     visaApplication: null,
+    withdrawn: false,
   },
   {
     id: 'a3',
@@ -149,15 +159,13 @@ export const MOCK_APPLICATIONS: ApplicationRecord[] = [
     counselor: 'Sita Gurung',
     consultationDate: '2026-09-10',
     consultationNotes: 'Client applying for student visa (subclass 500). Confirmed university offer from University of Sydney. Financial documents in order.',
-    status: 'Success',
-    statusHistory: [
-      { status: 'Preparation', date: 'Sept 10' },
-      { status: 'Lodgement', date: 'Sept 12' },
-      { status: 'Success', date: 'Sept 14' },
-    ],
     branch: 'Sydney CBD',
-    collegeApplications: [],
-    visaApplication: null,
+    offerApplications: [
+      offer('a3-o1', 'Holmes Institute', 'Rejected', '2026-09-11', { appliedDate: '2026-09-10', outcomeDate: '2026-09-11', notes: 'Did not meet minimum academic entry score.' }),
+      offer('a3-o2', 'University of Sydney', 'Offer Received', '2026-09-13', { appliedDate: '2026-09-12', outcomeDate: '2026-09-13' }),
+    ],
+    visaApplication: visa('Visa Approved', '2026-09-16', ALL_DOCS, { appliedDate: '2026-09-14', outcomeDate: '2026-09-16' }),
+    withdrawn: false,
   },
   {
     id: 'a4',
@@ -169,14 +177,12 @@ export const MOCK_APPLICATIONS: ApplicationRecord[] = [
     counselor: 'David Chen',
     consultationDate: '2026-09-08',
     consultationNotes: 'Client seeking permanent residency via Express Entry. Reviewed education credentials and work experience. Need to arrange WES assessment.',
-    status: 'Lodgement',
-    statusHistory: [
-      { status: 'Preparation', date: 'Sept 8' },
-      { status: 'Lodgement', date: 'Sept 11' },
-    ],
     branch: 'Sydney CBD',
-    collegeApplications: [],
-    visaApplication: null,
+    offerApplications: [
+      offer('a4-o1', 'University of Toronto', 'Offer Received', '2026-09-11', { appliedDate: '2026-09-09', outcomeDate: '2026-09-11' }),
+    ],
+    visaApplication: visa('Visa Applied', '2026-09-15', ALL_DOCS, { appliedDate: '2026-09-15' }),
+    withdrawn: false,
   },
   {
     id: 'a5',
@@ -188,13 +194,12 @@ export const MOCK_APPLICATIONS: ApplicationRecord[] = [
     counselor: 'Ramesh Thapa',
     consultationDate: '2026-09-09',
     consultationNotes: 'Student visa application. Client has offer from Monash University. Need to arrange OSHC health insurance and financial evidence.',
-    status: 'Preparation',
-    statusHistory: [
-      { status: 'Preparation', date: 'Sept 9' },
-    ],
     branch: 'Sydney CBD',
-    collegeApplications: [],
+    offerApplications: [
+      offer('a5-o1', 'Monash University', 'Enrolled', '2026-09-09'),
+    ],
     visaApplication: null,
+    withdrawn: false,
   },
   {
     id: 'a6',
@@ -206,15 +211,12 @@ export const MOCK_APPLICATIONS: ApplicationRecord[] = [
     counselor: 'Bikash Rai',
     consultationDate: '2026-09-05',
     consultationNotes: 'Express Entry profile being prepared. Client has CLB 8 in IELTS. Awaiting WES credential assessment results.',
-    status: 'Refused',
-    statusHistory: [
-      { status: 'Preparation', date: 'Sept 5' },
-      { status: 'Lodgement', date: 'Sept 8' },
-      { status: 'Refused', date: 'Sept 13' },
-    ],
     branch: 'Sydney CBD',
-    collegeApplications: [],
+    offerApplications: [
+      offer('a6-o1', 'University of Toronto', 'Rejected', '2026-09-13', { appliedDate: '2026-09-08', outcomeDate: '2026-09-13', notes: 'Insufficient work experience points.' }),
+    ],
     visaApplication: null,
+    withdrawn: false,
   },
   {
     id: 'a7',
@@ -226,13 +228,12 @@ export const MOCK_APPLICATIONS: ApplicationRecord[] = [
     counselor: 'David Chen',
     consultationDate: '2026-09-07',
     consultationNotes: 'Client interested in skilled migration pathway. Needs IELTS assessment. Discussed employer sponsorship options.',
-    status: 'Preparation',
-    statusHistory: [
-      { status: 'Preparation', date: 'Sept 7' },
-    ],
     branch: 'Sydney CBD',
-    collegeApplications: [],
+    offerApplications: [
+      offer('a7-o1', 'William Angliss Institute', 'Applied to Institution', '2026-09-09', { appliedDate: '2026-09-09' }),
+    ],
     visaApplication: null,
+    withdrawn: false,
   },
   {
     id: 'a8',
@@ -244,14 +245,12 @@ export const MOCK_APPLICATIONS: ApplicationRecord[] = [
     counselor: 'Ramesh Thapa',
     consultationDate: '2026-09-06',
     consultationNotes: 'Student visa application. Client has offer from University of Melbourne. Awaiting financial documents from sponsor.',
-    status: 'Lodgement',
-    statusHistory: [
-      { status: 'Preparation', date: 'Sept 6' },
-      { status: 'Lodgement', date: 'Sept 10' },
-    ],
     branch: 'New Baneshwor',
-    collegeApplications: [],
-    visaApplication: null,
+    offerApplications: [
+      offer('a8-o1', 'University of Melbourne', 'Offer Received', '2026-09-10', { appliedDate: '2026-09-08', outcomeDate: '2026-09-10' }),
+    ],
+    visaApplication: visa('Ready for Visa', '2026-09-13', ALL_DOCS),
+    withdrawn: false,
   },
   {
     id: 'a9',
@@ -263,13 +262,13 @@ export const MOCK_APPLICATIONS: ApplicationRecord[] = [
     counselor: 'Bikash Rai',
     consultationDate: '2026-09-03',
     consultationNotes: 'Express Entry profile under preparation. Awaiting updated language test results before proceeding.',
-    status: 'Preparation',
-    statusHistory: [
-      { status: 'Preparation', date: 'Sept 4' },
-    ],
     branch: 'Kamaladi',
-    collegeApplications: [],
+    offerApplications: [
+      offer('a9-o1', 'Holmes Institute', 'Applied to Institution', '2026-09-05', { appliedDate: '2026-09-05' }),
+    ],
     visaApplication: null,
+    withdrawn: true,
+    withdrawnDate: '2026-09-06',
   },
   {
     id: 'a10',
@@ -281,13 +280,12 @@ export const MOCK_APPLICATIONS: ApplicationRecord[] = [
     counselor: 'Milan Gurung',
     consultationDate: '2026-09-05',
     consultationNotes: 'Tourist visa application. Awaiting bank statements and travel itinerary from client.',
-    status: 'Preparation',
-    statusHistory: [
-      { status: 'Preparation', date: 'Sept 6' },
-    ],
     branch: 'Putalisadak',
-    collegeApplications: [],
-    visaApplication: null,
+    offerApplications: [
+      offer('a10-o1', 'William Angliss Institute', 'Offer Received', '2026-09-08', { appliedDate: '2026-09-06', outcomeDate: '2026-09-08' }),
+    ],
+    visaApplication: visa('Visa Refused', '2026-09-13', ALL_DOCS, { appliedDate: '2026-09-10', outcomeDate: '2026-09-13' }),
+    withdrawn: false,
   },
 ];
 

@@ -1,5 +1,5 @@
 import { supabase } from './supabaseClient';
-import { ApplicationRecord, CollegeApplication, VisaApplication } from '../types';
+import { ApplicationRecord, OfferApplication, OfferStatus, VisaApplication, VisaStageStatus } from '../types';
 
 interface ApplicationRow {
   id: string;
@@ -17,11 +17,55 @@ interface ApplicationRow {
   counselor: string;
   consultation_date: string;
   consultation_notes: string;
-  status: ApplicationRecord['status'];
-  status_history: ApplicationRecord['statusHistory'];
   branch: string;
-  college_applications: CollegeApplication[] | null;
-  visa_application: VisaApplication | null;
+  offer_applications: unknown;
+  visa_application: unknown;
+  withdrawn: boolean | null;
+  withdrawn_date: string | null;
+}
+
+const OFFER_STATUSES: OfferStatus[] = ['Enrolled', 'Applied to Institution', 'Offer Received', 'Rejected'];
+const VISA_STAGE_STATUSES: VisaStageStatus[] = ['Preparing Documents', 'Ready for Visa', 'Visa Applied', 'Visa Approved', 'Visa Refused'];
+
+// Defensive against rows saved under the pre-two-stage schema (institution/course + Preparing
+// Documents/Offer Received/Accepted/Declined, or a documents[] visa checklist) — coerces
+// unrecognised shapes to sane defaults instead of throwing when the officer opens the record.
+function normalizeOfferApplications(raw: unknown): OfferApplication[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.map((o: Record<string, unknown>, i: number): OfferApplication => {
+    const status = OFFER_STATUSES.includes(o.status as OfferStatus) ? (o.status as OfferStatus) : 'Enrolled';
+    return {
+      id: typeof o.id === 'string' ? o.id : `o${Date.now()}${i}`,
+      institution: typeof o.institution === 'string' ? o.institution : 'Unknown institution',
+      status,
+      appliedDate: typeof o.appliedDate === 'string' ? o.appliedDate : undefined,
+      outcomeDate: typeof o.outcomeDate === 'string' ? o.outcomeDate : undefined,
+      statusUpdatedAt: typeof o.statusUpdatedAt === 'string' ? o.statusUpdatedAt
+        : (o.outcomeDate as string) ?? (o.appliedDate as string) ?? new Date().toISOString().slice(0, 10),
+      notes: typeof o.notes === 'string' ? o.notes : undefined,
+    };
+  });
+}
+
+function normalizeVisaApplication(raw: unknown): VisaApplication | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const o = raw as Record<string, unknown>;
+  const status = VISA_STAGE_STATUSES.includes(o.status as VisaStageStatus) ? (o.status as VisaStageStatus) : 'Preparing Documents';
+  const checklist = (o.checklist ?? {}) as Record<string, unknown>;
+  return {
+    status,
+    checklist: {
+      noc: !!checklist.noc,
+      medical: !!checklist.medical,
+      financial: !!checklist.financial,
+      policeReport: !!checklist.policeReport,
+    },
+    appliedDate: typeof o.appliedDate === 'string' ? o.appliedDate : undefined,
+    outcomeDate: typeof o.outcomeDate === 'string' ? o.outcomeDate : undefined,
+    statusUpdatedAt: typeof o.statusUpdatedAt === 'string' ? o.statusUpdatedAt
+      : (o.outcomeDate as string) ?? (o.appliedDate as string) ?? new Date().toISOString().slice(0, 10),
+    notes: typeof o.notes === 'string' ? o.notes : '',
+  };
 }
 
 function fromRow(row: ApplicationRow): ApplicationRecord {
@@ -41,11 +85,11 @@ function fromRow(row: ApplicationRow): ApplicationRecord {
     counselor: row.counselor,
     consultationDate: row.consultation_date,
     consultationNotes: row.consultation_notes,
-    status: row.status,
-    statusHistory: row.status_history,
     branch: row.branch,
-    collegeApplications: row.college_applications ?? [],
-    visaApplication: row.visa_application ?? null,
+    offerApplications: normalizeOfferApplications(row.offer_applications),
+    visaApplication: normalizeVisaApplication(row.visa_application),
+    withdrawn: row.withdrawn ?? false,
+    withdrawnDate: row.withdrawn_date ?? undefined,
   };
 }
 
@@ -66,11 +110,11 @@ function toRow(a: ApplicationRecord): ApplicationRow {
     counselor: a.counselor,
     consultation_date: a.consultationDate,
     consultation_notes: a.consultationNotes,
-    status: a.status,
-    status_history: a.statusHistory,
     branch: a.branch,
-    college_applications: a.collegeApplications,
+    offer_applications: a.offerApplications,
     visa_application: a.visaApplication,
+    withdrawn: a.withdrawn,
+    withdrawn_date: a.withdrawnDate ?? null,
   };
 }
 
@@ -90,11 +134,11 @@ function toRowUpdates(updates: Partial<ApplicationRecord>): Record<string, unkno
   if (updates.counselor !== undefined) row.counselor = updates.counselor;
   if (updates.consultationDate !== undefined) row.consultation_date = updates.consultationDate;
   if (updates.consultationNotes !== undefined) row.consultation_notes = updates.consultationNotes;
-  if (updates.status !== undefined) row.status = updates.status;
-  if (updates.statusHistory !== undefined) row.status_history = updates.statusHistory;
   if (updates.branch !== undefined) row.branch = updates.branch;
-  if (updates.collegeApplications !== undefined) row.college_applications = updates.collegeApplications;
+  if (updates.offerApplications !== undefined) row.offer_applications = updates.offerApplications;
   if (updates.visaApplication !== undefined) row.visa_application = updates.visaApplication;
+  if (updates.withdrawn !== undefined) row.withdrawn = updates.withdrawn;
+  if (updates.withdrawnDate !== undefined) row.withdrawn_date = updates.withdrawnDate;
   return row;
 }
 

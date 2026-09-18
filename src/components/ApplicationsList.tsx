@@ -1,10 +1,11 @@
 import { useState, useMemo } from 'react';
 import { Search, X, ChevronRight, ChevronDown } from 'lucide-react';
-import { ApplicationRecord, ApplicationStatus, Partner } from '../types';
+import { ApplicationRecord, Partner } from '../types';
 import ApplicationDetailDrawer from './ApplicationDetailDrawer';
 import ClientProfile from './ClientProfile';
 import DateRangeFilter from './DateRangeFilter';
 import { matchesDateRange } from '../dateFilter';
+import { getClientStage, getClientStatusLabel, getStatusTone, STATUS_TONE_STYLES, ClientStage } from '../clientPipeline';
 
 interface ApplicationsListProps {
   applications: ApplicationRecord[];
@@ -12,28 +13,24 @@ interface ApplicationsListProps {
   branches?: string[];
   showBranchFilter?: boolean;
   partners?: Partner[];
+  /** Restricts the list to one stage (Offer/Visa) and hides the stage filter + column —
+   * used when this list is reached via a stage-specific sidebar item rather than the
+   * combined view. Withdrawn clients still show up under whichever stage they were in. */
+  stageScope?: ClientStage;
 }
 
-type StatusFilter = 'all' | ApplicationStatus;
+type StageFilter = 'all' | ClientStage | 'Withdrawn';
 
-const STATUS_STYLES: Record<ApplicationStatus, string> = {
-  Preparation: 'bg-gray-100 text-gray-600',
-  Lodgement: 'bg-navy text-white',
-  Success: 'bg-green-100 text-green-700',
-  Refused: 'bg-red-100 text-red-700',
-};
-
-const STATUS_FILTER_OPTIONS: { value: StatusFilter; label: string }[] = [
-  { value: 'all', label: 'All Statuses' },
-  { value: 'Preparation', label: 'Preparation' },
-  { value: 'Lodgement', label: 'Lodgement' },
-  { value: 'Success', label: 'Success' },
-  { value: 'Refused', label: 'Refused' },
+const STAGE_FILTER_OPTIONS: { value: StageFilter; label: string }[] = [
+  { value: 'all', label: 'All Stages' },
+  { value: 'Offer', label: 'Offer Stage' },
+  { value: 'Visa', label: 'Visa Stage' },
+  { value: 'Withdrawn', label: 'Withdrawn' },
 ];
 
-export default function ApplicationsList({ applications, onUpdateApplication, branches, showBranchFilter, partners }: ApplicationsListProps) {
+export default function ApplicationsList({ applications, onUpdateApplication, branches, showBranchFilter, partners, stageScope }: ApplicationsListProps) {
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [stageFilter, setStageFilter] = useState<StageFilter>('all');
   const [branchFilter, setBranchFilter] = useState<string>('all');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
@@ -42,12 +39,16 @@ export default function ApplicationsList({ applications, onUpdateApplication, br
   const filtered = useMemo(() => {
     return applications.filter((a) => {
       const matchesSearch = a.name.toLowerCase().includes(search.toLowerCase());
-      const matchesStatus = statusFilter === 'all' || a.status === statusFilter;
+      const matchesScope = !stageScope || getClientStage(a) === stageScope;
+      const matchesStage =
+        stageScope !== undefined ||
+        stageFilter === 'all' ||
+        (stageFilter === 'Withdrawn' ? a.withdrawn : !a.withdrawn && getClientStage(a) === stageFilter);
       const matchesBranch = !showBranchFilter || branchFilter === 'all' || a.branch === branchFilter;
       const matchesDate = matchesDateRange(a.consultationDate, dateFrom, dateTo);
-      return matchesSearch && matchesStatus && matchesBranch && matchesDate;
+      return matchesSearch && matchesScope && matchesStage && matchesBranch && matchesDate;
     });
-  }, [applications, search, statusFilter, branchFilter, showBranchFilter, dateFrom, dateTo]);
+  }, [applications, search, stageScope, stageFilter, branchFilter, showBranchFilter, dateFrom, dateTo]);
 
   return (
     <div className="space-y-5">
@@ -72,18 +73,20 @@ export default function ApplicationsList({ applications, onUpdateApplication, br
           )}
         </div>
 
-        <div className="relative">
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
-            className="w-full sm:w-auto appearance-none bg-white border border-grey-border rounded-lg pl-3 pr-9 py-2.5 text-sm font-medium text-navy focus:outline-none focus:border-navy-light focus:ring-1 focus:ring-navy-light transition-colors"
-          >
-            {STATUS_FILTER_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
-            ))}
-          </select>
-          <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
-        </div>
+        {!stageScope && (
+          <div className="relative">
+            <select
+              value={stageFilter}
+              onChange={(e) => setStageFilter(e.target.value as StageFilter)}
+              className="w-full sm:w-auto appearance-none bg-white border border-grey-border rounded-lg pl-3 pr-9 py-2.5 text-sm font-medium text-navy focus:outline-none focus:border-navy-light focus:ring-1 focus:ring-navy-light transition-colors"
+            >
+              {STAGE_FILTER_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
+          </div>
+        )}
         {showBranchFilter && branches && (
           <div className="relative">
             <select
@@ -114,6 +117,7 @@ export default function ApplicationsList({ applications, onUpdateApplication, br
               <th className="text-left text-xs font-semibold text-gray-500 px-5 py-3">Counselor</th>
               <th className="text-left text-xs font-semibold text-gray-500 px-5 py-3">Consultation</th>
               {showBranchFilter && <th className="text-left text-xs font-semibold text-gray-500 px-5 py-3">Branch</th>}
+              {!stageScope && <th className="text-left text-xs font-semibold text-gray-500 px-5 py-3">Stage</th>}
               <th className="text-left text-xs font-semibold text-gray-500 px-5 py-3">Status</th>
               <th className="text-right text-xs font-semibold text-gray-500 px-5 py-3"></th>
             </tr>
@@ -135,9 +139,10 @@ export default function ApplicationsList({ applications, onUpdateApplication, br
                 <td className="px-5 py-3.5 text-sm text-gray-600">{a.counselor}</td>
                 <td className="px-5 py-3.5 text-sm text-gray-500 whitespace-nowrap">{a.consultationDate}</td>
                 {showBranchFilter && <td className="px-5 py-3.5 text-sm text-gray-600">{a.branch}</td>}
+                {!stageScope && <td className="px-5 py-3.5 text-sm text-gray-600">{a.withdrawn ? '—' : getClientStage(a)}</td>}
                 <td className="px-5 py-3.5">
-                  <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${STATUS_STYLES[a.status]}`}>
-                    {a.status}
+                  <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${STATUS_TONE_STYLES[getStatusTone(a)]}`}>
+                    {getClientStatusLabel(a)}
                   </span>
                 </td>
                 <td className="px-5 py-3.5 text-right">
@@ -165,15 +170,19 @@ export default function ApplicationsList({ applications, onUpdateApplication, br
                 <p className="text-sm font-semibold text-navy">{a.name}</p>
                 <p className="text-xs text-gray-400">{a.email}</p>
               </div>
-              <span className={`text-xs font-medium px-2.5 py-1 rounded-full flex-shrink-0 ml-2 ${STATUS_STYLES[a.status]}`}>
-                {a.status}
+              <span className={`text-xs font-medium px-2.5 py-1 rounded-full flex-shrink-0 ml-2 ${STATUS_TONE_STYLES[getStatusTone(a)]}`}>
+                {getClientStatusLabel(a)}
               </span>
             </div>
             <div className="grid grid-cols-2 gap-2 text-xs text-gray-500 mb-3">
               <p>Country: <span className="text-gray-700">{a.country}</span></p>
               <p>Purpose: <span className="text-gray-700">{a.purpose}</span></p>
               <p>Counselor: <span className="text-gray-700">{a.counselor}</span></p>
-              <p>Consultation: <span className="text-gray-700">{a.consultationDate}</span></p>
+              {stageScope ? (
+                <p>Consultation: <span className="text-gray-700">{a.consultationDate}</span></p>
+              ) : (
+                <p>Stage: <span className="text-gray-700">{a.withdrawn ? '—' : getClientStage(a)}</span></p>
+              )}
             </div>
             <div className="flex items-center justify-between pt-3 border-t border-grey-border">
               <p className="text-xs text-gray-400">Tap to view details</p>
@@ -202,10 +211,6 @@ export default function ApplicationsList({ applications, onUpdateApplication, br
           <ApplicationDetailDrawer
             application={selectedApp}
             onClose={() => setSelectedApp(null)}
-            onUpdate={(updates) => {
-              onUpdateApplication(selectedApp.id, updates);
-              setSelectedApp({ ...selectedApp, ...updates });
-            }}
           />
         )
       )}

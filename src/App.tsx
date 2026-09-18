@@ -225,8 +225,6 @@ export default function App() {
         insertNotification(managerNotification).catch((err) => console.error('Failed to insert notification in Supabase', err));
 
         const now = new Date();
-        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec'];
-        const historyDate = `${monthNames[now.getMonth()]} ${now.getDate()}`;
         const newApplication: ApplicationRecord = {
           id: `a${Date.now()}`,
           name: student.name,
@@ -243,11 +241,10 @@ export default function App() {
           counselor: student.assignedCounselor,
           consultationDate: student.completedDate ?? now.toISOString().slice(0, 10),
           consultationNotes: student.consultationNotes,
-          status: 'Preparation',
-          statusHistory: [{ status: 'Preparation', date: historyDate }],
           branch: user?.branch ?? '',
-          collegeApplications: [],
+          offerApplications: [],
           visaApplication: null,
+          withdrawn: false,
         };
         setApplications((prev) => [newApplication, ...prev]);
         insertApplication(newApplication).catch((err) => console.error('Failed to insert application in Supabase', err));
@@ -530,6 +527,24 @@ export default function App() {
           branches={branchNames}
           showBranchFilter={isSuperAdmin}
           partners={user.role === 'application_officer' ? partners : undefined}
+        />
+      );
+    if (activeKey === 'offer-applications')
+      return (
+        <ApplicationsList
+          applications={branchApplications}
+          onUpdateApplication={handleUpdateApplication}
+          partners={partners}
+          stageScope="Offer"
+        />
+      );
+    if (activeKey === 'visa-applications')
+      return (
+        <ApplicationsList
+          applications={branchApplications}
+          onUpdateApplication={handleUpdateApplication}
+          partners={partners}
+          stageScope="Visa"
         />
       );
     if (activeKey === 'status-updates')
