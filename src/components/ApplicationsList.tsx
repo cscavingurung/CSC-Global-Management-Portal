@@ -1,7 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Search, X, ChevronRight, ChevronDown } from 'lucide-react';
-import { ApplicationRecord, Partner } from '../types';
-import ApplicationDetailDrawer from './ApplicationDetailDrawer';
+import { ApplicationRecord, MockUser, Partner } from '../types';
 import ClientProfile from './ClientProfile';
 import DateRangeFilter from './DateRangeFilter';
 import { matchesDateRange } from '../dateFilter';
@@ -10,9 +9,10 @@ import { getClientStage, getClientStatusLabel, getStatusTone, STATUS_TONE_STYLES
 interface ApplicationsListProps {
   applications: ApplicationRecord[];
   onUpdateApplication: (id: string, updates: Partial<ApplicationRecord>) => void;
+  partners: Partner[];
+  currentUser: MockUser;
   branches?: string[];
   showBranchFilter?: boolean;
-  partners?: Partner[];
   /** Restricts the list to one stage (Offer/Visa) and hides the stage filter + column —
    * used when this list is reached via a stage-specific sidebar item rather than the
    * combined view. Withdrawn clients still show up under whichever stage they were in. */
@@ -28,7 +28,7 @@ const STAGE_FILTER_OPTIONS: { value: StageFilter; label: string }[] = [
   { value: 'Withdrawn', label: 'Withdrawn' },
 ];
 
-export default function ApplicationsList({ applications, onUpdateApplication, branches, showBranchFilter, partners, stageScope }: ApplicationsListProps) {
+export default function ApplicationsList({ applications, onUpdateApplication, branches, showBranchFilter, partners, currentUser, stageScope }: ApplicationsListProps) {
   const [search, setSearch] = useState('');
   const [stageFilter, setStageFilter] = useState<StageFilter>('all');
   const [branchFilter, setBranchFilter] = useState<string>('all');
@@ -195,24 +195,18 @@ export default function ApplicationsList({ applications, onUpdateApplication, br
         )}
       </div>
 
-      {/* Detail drawer / client profile */}
+      {/* Client profile */}
       {selectedApp && (
-        partners ? (
-          <ClientProfile
-            application={selectedApp}
-            partners={partners}
-            onClose={() => setSelectedApp(null)}
-            onUpdate={(updates) => {
-              onUpdateApplication(selectedApp.id, updates);
-              setSelectedApp({ ...selectedApp, ...updates });
-            }}
-          />
-        ) : (
-          <ApplicationDetailDrawer
-            application={selectedApp}
-            onClose={() => setSelectedApp(null)}
-          />
-        )
+        <ClientProfile
+          application={selectedApp}
+          partners={partners}
+          currentUser={currentUser}
+          onClose={() => setSelectedApp(null)}
+          onUpdate={(updates) => {
+            onUpdateApplication(selectedApp.id, updates);
+            setSelectedApp({ ...selectedApp, ...updates });
+          }}
+        />
       )}
     </div>
   );

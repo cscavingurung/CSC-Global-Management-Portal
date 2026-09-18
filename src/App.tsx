@@ -245,6 +245,7 @@ export default function App() {
           offerApplications: [],
           visaApplication: null,
           withdrawn: false,
+          notes: [],
         };
         setApplications((prev) => [newApplication, ...prev]);
         insertApplication(newApplication).catch((err) => console.error('Failed to insert application in Supabase', err));
@@ -514,7 +515,16 @@ export default function App() {
     if (activeKey === 'my-students')
       return <MyStudents students={myCounselorStudents} onUpdateStudent={handleUpdateCounselorStudent} />;
     if (activeKey === 'consultations')
-      return <ConsultationsPage students={myCounselorStudents} applications={applications} onUpdateStudent={handleUpdateCounselorStudent} />;
+      return (
+        <ConsultationsPage
+          students={myCounselorStudents}
+          applications={applications}
+          partners={partners}
+          currentUser={user}
+          onUpdateStudent={handleUpdateCounselorStudent}
+          onUpdateApplication={handleUpdateApplication}
+        />
+      );
     if (activeKey === 'follow-ups')
       return <FollowUpsPage students={myCounselorStudents} onUpdateStudent={handleUpdateCounselorStudent} />;
     if (activeKey === 'archive')
@@ -526,7 +536,8 @@ export default function App() {
           onUpdateApplication={handleUpdateApplication}
           branches={branchNames}
           showBranchFilter={isSuperAdmin}
-          partners={user.role === 'application_officer' ? partners : undefined}
+          partners={partners}
+          currentUser={user}
         />
       );
     if (activeKey === 'offer-applications')
@@ -535,6 +546,7 @@ export default function App() {
           applications={branchApplications}
           onUpdateApplication={handleUpdateApplication}
           partners={partners}
+          currentUser={user}
           stageScope="Offer"
         />
       );
@@ -544,6 +556,7 @@ export default function App() {
           applications={branchApplications}
           onUpdateApplication={handleUpdateApplication}
           partners={partners}
+          currentUser={user}
           stageScope="Visa"
         />
       );

@@ -1,4 +1,4 @@
-import { Role, NavConfig, Counselor, ApplicationRecord, OfferApplication, VisaApplication, StaffMember, StaffRole, ActivityEntry, Branch, CommissionRecord, Partner, AppNotification } from './types';
+import { Role, NavConfig, Counselor, ApplicationRecord, OfferApplication, VisaApplication, ClientNote, StaffMember, StaffRole, ActivityEntry, Branch, CommissionRecord, Partner, AppNotification } from './types';
 
 export const ROLE_LABELS: Record<Role, string> = {
   super_admin: 'Super Admin',
@@ -8,6 +8,18 @@ export const ROLE_LABELS: Record<Role, string> = {
   receptionist: 'Front Desk Officer',
   counselor: 'Counselor',
   application_officer: 'VA Officer',
+};
+
+// Soft-tinted author-role badge on Branch Staff Notes — one distinct tint per role, never
+// a solid fill, matching the rest of the app's badge styling.
+export const ROLE_BADGE_STYLES: Record<Role, string> = {
+  super_admin: 'bg-navy/10 text-navy',
+  marketing: 'bg-pink-100 text-pink-700',
+  finance: 'bg-amber-100 text-amber-700',
+  branch_manager: 'bg-purple-100 text-purple-700',
+  receptionist: 'bg-orange-100 text-orange-700',
+  counselor: 'bg-blue-100 text-blue-700',
+  application_officer: 'bg-teal-100 text-teal-700',
 };
 
 // Maps a `staff` table row's role (Title Case, as entered in Staff Management) to the
@@ -103,12 +115,16 @@ export const MOCK_COUNSELORS: Counselor[] = [
   { id: 'c6', name: 'Milan Gurung', country: 'Australia', activeAssignments: 10, availability: 'Available' },
 ];
 
-function offer(id: string, institution: string, status: OfferApplication['status'], statusUpdatedAt: string, opts?: { appliedDate?: string; outcomeDate?: string; notes?: string }): OfferApplication {
+function offer(id: string, institution: string, status: OfferApplication['status'], statusUpdatedAt: string, opts?: { appliedDate?: string; outcomeDate?: string; feePaidDate?: string; notes?: string }): OfferApplication {
   return { id, institution, status, statusUpdatedAt, ...opts };
 }
 
-function visa(status: VisaApplication['status'], statusUpdatedAt: string, checklist: VisaApplication['checklist'], opts?: { appliedDate?: string; outcomeDate?: string; notes?: string }): VisaApplication {
-  return { status, statusUpdatedAt, checklist, notes: opts?.notes ?? '', appliedDate: opts?.appliedDate, outcomeDate: opts?.outcomeDate };
+function visa(status: VisaApplication['status'], statusUpdatedAt: string, checklist: VisaApplication['checklist'], opts?: { appliedDate?: string; outcomeDate?: string; notes?: string; refundRequested?: boolean; refundRequestedDate?: string }): VisaApplication {
+  return { status, statusUpdatedAt, checklist, notes: opts?.notes ?? '', ...opts };
+}
+
+function note(id: string, text: string, authorName: string, authorRole: Role, createdAt: string): ClientNote {
+  return { id, text, authorName, authorRole, createdAt };
 }
 
 const NO_DOCS = { noc: false, medical: false, financial: false, policeReport: false };
@@ -127,10 +143,16 @@ export const MOCK_APPLICATIONS: ApplicationRecord[] = [
     consultationNotes: 'Client has valid job offer from Sydney employer. Recommended 482 visa (temporary skill shortage). All documents verified and ready for lodgement.',
     branch: 'Sydney CBD',
     offerApplications: [
-      offer('a1-o1', 'Holmes Institute', 'Offer Received', '2026-09-14', { appliedDate: '2026-09-13', outcomeDate: '2026-09-14' }),
+      offer('a1-o1', 'Holmes Institute', 'Fee Paid', '2026-09-14', { appliedDate: '2026-09-13', outcomeDate: '2026-09-13', feePaidDate: '2026-09-14' }),
     ],
-    visaApplication: visa('Preparing Documents', '2026-09-14', { ...NO_DOCS, noc: true, medical: true }),
+    visaApplication: visa('Preparing Documents', '2026-09-15', { ...NO_DOCS, noc: true, medical: true }),
     withdrawn: false,
+    notes: [
+      note('n1-1', 'Client confirmed the employer job offer letter is finalized — handing over for visa prep.', 'David Chen', 'counselor', '2026-09-13'),
+      note('n1-2', 'Reviewed docs. NOC and medical already on file, chasing financial statements next.', 'Maria Santos', 'application_officer', '2026-09-14'),
+      note('n1-3', 'Financial documents received today — just need the police report to move to File Ready for Visa.', 'Maria Santos', 'application_officer', '2026-09-15'),
+      note('n1-4', 'Client asked about processing time — let them know we\'re on track for this week.', 'David Chen', 'counselor', '2026-09-15'),
+    ],
   },
   {
     id: 'a2',
@@ -148,6 +170,7 @@ export const MOCK_APPLICATIONS: ApplicationRecord[] = [
     ],
     visaApplication: null,
     withdrawn: false,
+    notes: [],
   },
   {
     id: 'a3',
@@ -162,10 +185,11 @@ export const MOCK_APPLICATIONS: ApplicationRecord[] = [
     branch: 'Sydney CBD',
     offerApplications: [
       offer('a3-o1', 'Holmes Institute', 'Rejected', '2026-09-11', { appliedDate: '2026-09-10', outcomeDate: '2026-09-11', notes: 'Did not meet minimum academic entry score.' }),
-      offer('a3-o2', 'University of Sydney', 'Offer Received', '2026-09-13', { appliedDate: '2026-09-12', outcomeDate: '2026-09-13' }),
+      offer('a3-o2', 'University of Sydney', 'Fee Paid', '2026-09-14', { appliedDate: '2026-09-12', outcomeDate: '2026-09-13', feePaidDate: '2026-09-14' }),
     ],
     visaApplication: visa('Visa Approved', '2026-09-16', ALL_DOCS, { appliedDate: '2026-09-14', outcomeDate: '2026-09-16' }),
     withdrawn: false,
+    notes: [],
   },
   {
     id: 'a4',
@@ -179,10 +203,11 @@ export const MOCK_APPLICATIONS: ApplicationRecord[] = [
     consultationNotes: 'Client seeking permanent residency via Express Entry. Reviewed education credentials and work experience. Need to arrange WES assessment.',
     branch: 'Sydney CBD',
     offerApplications: [
-      offer('a4-o1', 'University of Toronto', 'Offer Received', '2026-09-11', { appliedDate: '2026-09-09', outcomeDate: '2026-09-11' }),
+      offer('a4-o1', 'University of Toronto', 'Fee Paid', '2026-09-12', { appliedDate: '2026-09-09', outcomeDate: '2026-09-11', feePaidDate: '2026-09-12' }),
     ],
     visaApplication: visa('Visa Applied', '2026-09-15', ALL_DOCS, { appliedDate: '2026-09-15' }),
     withdrawn: false,
+    notes: [],
   },
   {
     id: 'a5',
@@ -200,6 +225,7 @@ export const MOCK_APPLICATIONS: ApplicationRecord[] = [
     ],
     visaApplication: null,
     withdrawn: false,
+    notes: [],
   },
   {
     id: 'a6',
@@ -217,6 +243,7 @@ export const MOCK_APPLICATIONS: ApplicationRecord[] = [
     ],
     visaApplication: null,
     withdrawn: false,
+    notes: [],
   },
   {
     id: 'a7',
@@ -234,6 +261,7 @@ export const MOCK_APPLICATIONS: ApplicationRecord[] = [
     ],
     visaApplication: null,
     withdrawn: false,
+    notes: [],
   },
   {
     id: 'a8',
@@ -247,10 +275,11 @@ export const MOCK_APPLICATIONS: ApplicationRecord[] = [
     consultationNotes: 'Student visa application. Client has offer from University of Melbourne. Awaiting financial documents from sponsor.',
     branch: 'New Baneshwor',
     offerApplications: [
-      offer('a8-o1', 'University of Melbourne', 'Offer Received', '2026-09-10', { appliedDate: '2026-09-08', outcomeDate: '2026-09-10' }),
+      offer('a8-o1', 'University of Melbourne', 'Fee Paid', '2026-09-11', { appliedDate: '2026-09-08', outcomeDate: '2026-09-10', feePaidDate: '2026-09-11' }),
     ],
-    visaApplication: visa('Ready for Visa', '2026-09-13', ALL_DOCS),
+    visaApplication: visa('File Ready for Visa', '2026-09-13', ALL_DOCS),
     withdrawn: false,
+    notes: [],
   },
   {
     id: 'a9',
@@ -269,6 +298,7 @@ export const MOCK_APPLICATIONS: ApplicationRecord[] = [
     visaApplication: null,
     withdrawn: true,
     withdrawnDate: '2026-09-06',
+    notes: [],
   },
   {
     id: 'a10',
@@ -282,10 +312,11 @@ export const MOCK_APPLICATIONS: ApplicationRecord[] = [
     consultationNotes: 'Tourist visa application. Awaiting bank statements and travel itinerary from client.',
     branch: 'Putalisadak',
     offerApplications: [
-      offer('a10-o1', 'William Angliss Institute', 'Offer Received', '2026-09-08', { appliedDate: '2026-09-06', outcomeDate: '2026-09-08' }),
+      offer('a10-o1', 'William Angliss Institute', 'Fee Paid', '2026-09-09', { appliedDate: '2026-09-06', outcomeDate: '2026-09-08', feePaidDate: '2026-09-09' }),
     ],
     visaApplication: visa('Visa Refused', '2026-09-13', ALL_DOCS, { appliedDate: '2026-09-10', outcomeDate: '2026-09-13' }),
     withdrawn: false,
+    notes: [],
   },
 ];
 

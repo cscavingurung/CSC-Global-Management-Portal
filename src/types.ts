@@ -81,8 +81,9 @@ export interface CounselorStudent {
 
 // Stage 1 — one attempt at a single institution. A client can have several of these (one
 // per institution); a Rejected attempt stays in the array as history rather than being
-// removed, and the officer can add a new attempt to try a different institution.
-export type OfferStatus = 'Enrolled' | 'Applied to Institution' | 'Offer Received' | 'Rejected';
+// removed, and the officer can add a new attempt (Re-apply) to try a different institution.
+// Reaching 'Fee Paid' closes this attempt out and unlocks the visa stage.
+export type OfferStatus = 'Enrolled' | 'Applied to Institution' | 'Offer Received' | 'Rejected' | 'Fee Paid';
 
 export interface OfferApplication {
   id: string;
@@ -92,13 +93,16 @@ export interface OfferApplication {
   appliedDate?: string;
   /** Set when status reaches 'Offer Received' or 'Rejected'. */
   outcomeDate?: string;
+  /** Set when status reaches 'Fee Paid'. */
+  feePaidDate?: string;
   /** Date the current status was entered — powers "days in current status" staleness checks. */
   statusUpdatedAt: string;
   notes?: string;
 }
 
-// Stage 2 — unlocked once any OfferApplication reaches 'Offer Received'. Fixed 4-item
-// checklist only (no file uploads, no fee tracking — see project notes).
+// Stage 2 — unlocked once an OfferApplication reaches 'Fee Paid'. Fixed 4-item checklist
+// only (no file uploads). The checklist must be complete before advancing past
+// 'Preparing Documents'.
 export interface VisaChecklist {
   noc: boolean;
   medical: boolean;
@@ -106,7 +110,7 @@ export interface VisaChecklist {
   policeReport: boolean;
 }
 
-export type VisaStageStatus = 'Preparing Documents' | 'Ready for Visa' | 'Visa Applied' | 'Visa Approved' | 'Visa Refused';
+export type VisaStageStatus = 'Preparing Documents' | 'File Ready for Visa' | 'Visa Applied' | 'Visa Approved' | 'Visa Refused';
 
 export interface VisaApplication {
   status: VisaStageStatus;
@@ -118,6 +122,19 @@ export interface VisaApplication {
   /** Date the current status was entered — powers "days in current status" staleness checks. */
   statusUpdatedAt: string;
   notes: string;
+  /** Set via the "Request Refund" action after a Visa Refused outcome. */
+  refundRequested?: boolean;
+  refundRequestedDate?: string;
+}
+
+// Internal staff communication log entry on a client's profile — visible to any staff role,
+// editable by everyone except the front desk (view-only).
+export interface ClientNote {
+  id: string;
+  text: string;
+  authorName: string;
+  authorRole: Role;
+  createdAt: string;
 }
 
 export interface ApplicationRecord {
@@ -142,6 +159,7 @@ export interface ApplicationRecord {
   /** The only way a client exits the pipeline — never automatic on a rejected/refused outcome. */
   withdrawn: boolean;
   withdrawnDate?: string;
+  notes: ClientNote[];
 }
 
 export type StaffRole =

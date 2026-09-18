@@ -15,17 +15,18 @@ const OFFER_COLUMNS: { status: OfferStatus; label: string; dotColor: string; hea
   { status: 'Applied to Institution', label: 'Applied to Institution', dotColor: 'bg-navy', headerColor: 'text-navy' },
   { status: 'Offer Received', label: 'Offer Received', dotColor: 'bg-green-500', headerColor: 'text-green-600' },
   { status: 'Rejected', label: 'Rejected', dotColor: 'bg-red-500', headerColor: 'text-red-600' },
+  { status: 'Fee Paid', label: 'Fee Paid', dotColor: 'bg-green-500', headerColor: 'text-green-600' },
 ];
 
 const VISA_COLUMNS: { status: VisaStageStatus; label: string; dotColor: string; headerColor: string }[] = [
   { status: 'Preparing Documents', label: 'Preparing Documents', dotColor: 'bg-gray-400', headerColor: 'text-gray-600' },
-  { status: 'Ready for Visa', label: 'Ready for Visa', dotColor: 'bg-navy', headerColor: 'text-navy' },
+  { status: 'File Ready for Visa', label: 'File Ready for Visa', dotColor: 'bg-navy', headerColor: 'text-navy' },
   { status: 'Visa Applied', label: 'Visa Applied', dotColor: 'bg-navy', headerColor: 'text-navy' },
   { status: 'Visa Approved', label: 'Visa Approved', dotColor: 'bg-green-500', headerColor: 'text-green-600' },
   { status: 'Visa Refused', label: 'Visa Refused', dotColor: 'bg-red-500', headerColor: 'text-red-600' },
 ];
 
-const OFFER_TERMINAL: OfferStatus[] = ['Offer Received', 'Rejected'];
+const OFFER_TERMINAL: OfferStatus[] = ['Offer Received', 'Rejected', 'Fee Paid'];
 const VISA_TERMINAL: VisaStageStatus[] = ['Visa Approved', 'Visa Refused'];
 
 interface OfferCardData { app: ApplicationRecord; offerApp: OfferApplication }
@@ -59,8 +60,13 @@ export default function StatusUpdatesKanban({ applications, onUpdateApplication 
     const updates: Partial<OfferApplication> = { status: newStatus, statusUpdatedAt: date };
     if (newStatus === 'Applied to Institution') updates.appliedDate = date;
     if (newStatus === 'Offer Received' || newStatus === 'Rejected') updates.outcomeDate = date;
+    if (newStatus === 'Fee Paid') updates.feePaidDate = date;
     onUpdateApplication(card.app.id, {
       offerApplications: card.app.offerApplications.map((o) => (o.id === card.offerApp.id ? { ...o, ...updates } : o)),
+      // Fee Paid unlocks the visa stage — spin up its case here too, same as ClientProfile.
+      ...(newStatus === 'Fee Paid'
+        ? { visaApplication: { status: 'Preparing Documents', statusUpdatedAt: date, checklist: { noc: false, medical: false, financial: false, policeReport: false }, notes: '' } }
+        : {}),
     });
     showToastMessage(`${card.app.name} moved to ${newStatus}`);
   };
@@ -88,7 +94,7 @@ export default function StatusUpdatesKanban({ applications, onUpdateApplication 
 
   const handleVisaMove = (app: ApplicationRecord, newStatus: VisaStageStatus) => {
     if (!app.visaApplication || newStatus === app.visaApplication.status) return;
-    if (newStatus === 'Ready for Visa' && !isChecklistComplete(app.visaApplication.checklist)) return;
+    if (newStatus === 'File Ready for Visa' && !isChecklistComplete(app.visaApplication.checklist)) return;
     setDropdownOpenFor(null);
     if (VISA_TERMINAL.includes(newStatus)) setPendingVisaMove({ app, newStatus });
     else applyVisaMove(app, newStatus);
@@ -203,7 +209,7 @@ export default function StatusUpdatesKanban({ applications, onUpdateApplication 
                               <div className="fixed inset-0 z-10" onClick={() => setDropdownOpenFor(null)} />
                               <div className="absolute z-20 mt-1 w-full bg-white border border-grey-border rounded-lg shadow-lg overflow-hidden">
                                 {VISA_COLUMNS.map((target) => {
-                                  const blocked = target.status === 'Ready for Visa' && !checklistDone;
+                                  const blocked = target.status === 'File Ready for Visa' && !checklistDone;
                                   const disabled = target.status === app.visaApplication?.status || blocked;
                                   return (
                                     <button

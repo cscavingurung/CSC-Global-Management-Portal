@@ -1,5 +1,5 @@
 import { supabase } from './supabaseClient';
-import { ApplicationRecord, OfferApplication, OfferStatus, VisaApplication, VisaStageStatus } from '../types';
+import { ApplicationRecord, ClientNote, OfferApplication, OfferStatus, Role, VisaApplication, VisaStageStatus } from '../types';
 
 interface ApplicationRow {
   id: string;
@@ -22,10 +22,23 @@ interface ApplicationRow {
   visa_application: unknown;
   withdrawn: boolean | null;
   withdrawn_date: string | null;
+  notes: unknown;
 }
 
-const OFFER_STATUSES: OfferStatus[] = ['Enrolled', 'Applied to Institution', 'Offer Received', 'Rejected'];
-const VISA_STAGE_STATUSES: VisaStageStatus[] = ['Preparing Documents', 'Ready for Visa', 'Visa Applied', 'Visa Approved', 'Visa Refused'];
+const OFFER_STATUSES: OfferStatus[] = ['Enrolled', 'Applied to Institution', 'Offer Received', 'Rejected', 'Fee Paid'];
+const VISA_STAGE_STATUSES: VisaStageStatus[] = ['Preparing Documents', 'File Ready for Visa', 'Visa Applied', 'Visa Approved', 'Visa Refused'];
+const ROLES: Role[] = ['super_admin', 'marketing', 'finance', 'branch_manager', 'receptionist', 'counselor', 'application_officer'];
+
+function normalizeNotes(raw: unknown): ClientNote[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.map((n: Record<string, unknown>, i: number): ClientNote => ({
+    id: typeof n.id === 'string' ? n.id : `note${Date.now()}${i}`,
+    text: typeof n.text === 'string' ? n.text : '',
+    authorName: typeof n.authorName === 'string' ? n.authorName : 'Unknown',
+    authorRole: ROLES.includes(n.authorRole as Role) ? (n.authorRole as Role) : 'application_officer',
+    createdAt: typeof n.createdAt === 'string' ? n.createdAt : new Date().toISOString().slice(0, 10),
+  }));
+}
 
 // Defensive against rows saved under the pre-two-stage schema (institution/course + Preparing
 // Documents/Offer Received/Accepted/Declined, or a documents[] visa checklist) — coerces
@@ -40,8 +53,9 @@ function normalizeOfferApplications(raw: unknown): OfferApplication[] {
       status,
       appliedDate: typeof o.appliedDate === 'string' ? o.appliedDate : undefined,
       outcomeDate: typeof o.outcomeDate === 'string' ? o.outcomeDate : undefined,
+      feePaidDate: typeof o.feePaidDate === 'string' ? o.feePaidDate : undefined,
       statusUpdatedAt: typeof o.statusUpdatedAt === 'string' ? o.statusUpdatedAt
-        : (o.outcomeDate as string) ?? (o.appliedDate as string) ?? new Date().toISOString().slice(0, 10),
+        : (o.feePaidDate as string) ?? (o.outcomeDate as string) ?? (o.appliedDate as string) ?? new Date().toISOString().slice(0, 10),
       notes: typeof o.notes === 'string' ? o.notes : undefined,
     };
   });
@@ -65,6 +79,8 @@ function normalizeVisaApplication(raw: unknown): VisaApplication | null {
     statusUpdatedAt: typeof o.statusUpdatedAt === 'string' ? o.statusUpdatedAt
       : (o.outcomeDate as string) ?? (o.appliedDate as string) ?? new Date().toISOString().slice(0, 10),
     notes: typeof o.notes === 'string' ? o.notes : '',
+    refundRequested: !!o.refundRequested,
+    refundRequestedDate: typeof o.refundRequestedDate === 'string' ? o.refundRequestedDate : undefined,
   };
 }
 
@@ -90,6 +106,7 @@ function fromRow(row: ApplicationRow): ApplicationRecord {
     visaApplication: normalizeVisaApplication(row.visa_application),
     withdrawn: row.withdrawn ?? false,
     withdrawnDate: row.withdrawn_date ?? undefined,
+    notes: normalizeNotes(row.notes),
   };
 }
 
@@ -115,6 +132,7 @@ function toRow(a: ApplicationRecord): ApplicationRow {
     visa_application: a.visaApplication,
     withdrawn: a.withdrawn,
     withdrawn_date: a.withdrawnDate ?? null,
+    notes: a.notes,
   };
 }
 
@@ -139,6 +157,7 @@ function toRowUpdates(updates: Partial<ApplicationRecord>): Record<string, unkno
   if (updates.visaApplication !== undefined) row.visa_application = updates.visaApplication;
   if (updates.withdrawn !== undefined) row.withdrawn = updates.withdrawn;
   if (updates.withdrawnDate !== undefined) row.withdrawn_date = updates.withdrawnDate;
+  if (updates.notes !== undefined) row.notes = updates.notes;
   return row;
 }
 

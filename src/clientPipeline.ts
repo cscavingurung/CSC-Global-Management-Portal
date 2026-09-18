@@ -1,4 +1,4 @@
-import { ApplicationRecord, OfferApplication, OfferStatus, VisaStageStatus } from './types';
+import { ApplicationRecord, OfferApplication, OfferStatus, VisaStageStatus, Role } from './types';
 
 export type ClientStage = 'Offer' | 'Visa';
 
@@ -26,9 +26,9 @@ export function getActiveOfferApplication(app: ApplicationRecord): OfferApplicat
   return active ?? attempts[attempts.length - 1];
 }
 
-// Visa unlocks once any attempt has an offer in hand — no separate "accept" step.
+// Visa unlocks once the fee is paid on an offer — not merely on receiving the offer.
 export function isVisaUnlocked(app: ApplicationRecord): boolean {
-  return app.offerApplications.some((a) => a.status === 'Offer Received');
+  return app.offerApplications.some((a) => a.status === 'Fee Paid');
 }
 
 export function getClientStage(app: ApplicationRecord): ClientStage {
@@ -47,7 +47,7 @@ export function getClientStatusLabel(app: ApplicationRecord): string {
 export function getStatusTone(app: ApplicationRecord): StatusTone {
   if (app.withdrawn) return 'withdrawn';
   const label = getClientStatusLabel(app);
-  if (label === 'Offer Received' || label === 'Visa Approved') return 'positive';
+  if (label === 'Offer Received' || label === 'Fee Paid' || label === 'Visa Approved') return 'positive';
   if (label === 'Rejected' || label === 'Visa Refused') return 'negative';
   if (label === 'Enrolled' || label === 'Preparing Documents' || label === 'Not Started' || label === 'Ready to Start Visa') return 'early';
   return 'progress';
@@ -68,11 +68,12 @@ export const OFFER_STATUS_STYLES: Record<OfferStatus, string> = {
   'Applied to Institution': 'bg-navy/10 text-navy',
   'Offer Received': 'bg-green-100 text-green-700',
   Rejected: 'bg-red-100 text-red-700',
+  'Fee Paid': 'bg-green-100 text-green-700',
 };
 
 export const VISA_STATUS_STYLES: Record<VisaStageStatus, string> = {
   'Preparing Documents': 'bg-gray-100 text-gray-600',
-  'Ready for Visa': 'bg-navy/10 text-navy',
+  'File Ready for Visa': 'bg-navy/10 text-navy',
   'Visa Applied': 'bg-navy/10 text-navy',
   'Visa Approved': 'bg-green-100 text-green-700',
   'Visa Refused': 'bg-red-100 text-red-700',
@@ -165,5 +166,60 @@ export function recentActivity(applications: ApplicationRecord[], limit = 5): Ac
 }
 
 export const VISA_STAGE_STATUSES: VisaStageStatus[] = [
-  'Preparing Documents', 'Ready for Visa', 'Visa Applied', 'Visa Approved', 'Visa Refused',
+  'Preparing Documents', 'File Ready for Visa', 'Visa Applied', 'Visa Approved', 'Visa Refused',
 ];
+
+// ─── Unified pipeline stepper ───────────────────────────────────────────────────
+// The Status Tracker shows one linear stepper spanning both stages, even though the
+// underlying data is still "offer attempts[] + one visa case" — this just derives which
+// of the 8 canonical steps the client's active attempt/case currently sits at.
+
+export type PipelineStepKey =
+  | 'enrolled' | 'applied' | 'offer_outcome' | 'fee_paid'
+  | 'preparing_docs' | 'file_ready' | 'visa_applied' | 'visa_outcome';
+
+export interface PipelineStep {
+  key: PipelineStepKey;
+  label: string;
+}
+
+export const PIPELINE_STEPS: PipelineStep[] = [
+  { key: 'enrolled', label: 'Enrolled' },
+  { key: 'applied', label: 'Applied to Institution' },
+  { key: 'offer_outcome', label: 'Offer Received' },
+  { key: 'fee_paid', label: 'Fee Paid' },
+  { key: 'preparing_docs', label: 'Preparing Documents' },
+  { key: 'file_ready', label: 'File Ready for Visa' },
+  { key: 'visa_applied', label: 'Visa Applied' },
+  { key: 'visa_outcome', label: 'Visa Approved' },
+];
+
+// The current step index (0-based) plus whether that step landed on a negative branch
+// (Rejected / Visa Refused) — used to swap the step's label/color without a 9th column.
+export function getPipelineStep(app: ApplicationRecord): { index: number; negative: boolean } {
+  const visa = app.visaApplication;
+  if (visa) {
+    switch (visa.status) {
+      case 'Preparing Documents': return { index: 4, negative: false };
+      case 'File Ready for Visa': return { index: 5, negative: false };
+      case 'Visa Applied': return { index: 6, negative: false };
+      case 'Visa Approved': return { index: 7, negative: false };
+      case 'Visa Refused': return { index: 7, negative: true };
+    }
+  }
+  const active = getActiveOfferApplication(app);
+  if (!active) return { index: 0, negative: false };
+  switch (active.status) {
+    case 'Enrolled': return { index: 0, negative: false };
+    case 'Applied to Institution': return { index: 1, negative: false };
+    case 'Offer Received': return { index: 2, negative: false };
+    case 'Rejected': return { index: 2, negative: true };
+    case 'Fee Paid': return { index: 3, negative: false };
+  }
+}
+
+// Roles allowed to edit a client's status/notes on the Client Profile page — everyone
+// except the front desk, who gets a read-only view.
+export function canEditClientProfile(role: Role): boolean {
+  return role === 'application_officer' || role === 'counselor' || role === 'branch_manager' || role === 'super_admin';
+}

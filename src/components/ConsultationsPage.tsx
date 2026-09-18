@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'react';
 import { Search, X, Eye, CalendarDays, FileText, ChevronDown } from 'lucide-react';
-import { CounselorStudent, ApplicationRecord, OfferStatus, VisaStageStatus } from '../types';
+import { CounselorStudent, ApplicationRecord, MockUser, OfferStatus, Partner, VisaStageStatus } from '../types';
 import StudentProfile from './StudentProfile';
+import ClientProfile from './ClientProfile';
 import DateRangeFilter from './DateRangeFilter';
 import { matchesDateRange } from '../dateFilter';
 import { getActiveOfferApplication, OFFER_STATUS_STYLES, VISA_STATUS_STYLES } from '../clientPipeline';
@@ -9,7 +10,10 @@ import { getActiveOfferApplication, OFFER_STATUS_STYLES, VISA_STATUS_STYLES } fr
 interface ConsultationsPageProps {
   students: CounselorStudent[];
   applications: ApplicationRecord[];
+  partners: Partner[];
+  currentUser: MockUser;
   onUpdateStudent: (id: string, updates: Partial<CounselorStudent>) => void;
+  onUpdateApplication: (id: string, updates: Partial<ApplicationRecord>) => void;
 }
 
 type OfferFilter = 'all' | 'none' | OfferStatus;
@@ -22,13 +26,14 @@ const OFFER_FILTER_OPTIONS: { value: OfferFilter; label: string }[] = [
   { value: 'Applied to Institution', label: 'Applied to Institution' },
   { value: 'Offer Received', label: 'Offer Received' },
   { value: 'Rejected', label: 'Rejected' },
+  { value: 'Fee Paid', label: 'Fee Paid' },
 ];
 
 const VISA_FILTER_OPTIONS: { value: VisaFilter; label: string }[] = [
   { value: 'all', label: 'All Visa Statuses' },
   { value: 'none', label: 'No Application Yet' },
   { value: 'Preparing Documents', label: 'Preparing Documents' },
-  { value: 'Ready for Visa', label: 'Ready for Visa' },
+  { value: 'File Ready for Visa', label: 'File Ready for Visa' },
   { value: 'Visa Applied', label: 'Visa Applied' },
   { value: 'Visa Approved', label: 'Visa Approved' },
   { value: 'Visa Refused', label: 'Visa Refused' },
@@ -43,7 +48,7 @@ function getVisaStatus(app: ApplicationRecord | undefined): 'none' | VisaStageSt
   return app?.visaApplication ? app.visaApplication.status : 'none';
 }
 
-export default function ConsultationsPage({ students, applications, onUpdateStudent }: ConsultationsPageProps) {
+export default function ConsultationsPage({ students, applications, partners, currentUser, onUpdateStudent, onUpdateApplication }: ConsultationsPageProps) {
   const [search, setSearch] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
@@ -189,17 +194,29 @@ export default function ConsultationsPage({ students, applications, onUpdateStud
         </div>
       )}
 
-      {/* Detail drawer */}
+      {/* Detail drawer — the officer's Client Profile once an application record exists
+          (always true for a Proceeding client), falling back to the consultation-only
+          profile otherwise. */}
       {viewStudent && (
-        <StudentProfile
-          student={viewStudent}
-          applications={applications}
-          onClose={() => setViewStudent(null)}
-          onUpdate={(updates) => {
-            onUpdateStudent(viewStudent.id, updates);
-            setViewStudent({ ...viewStudent, ...updates });
-          }}
-        />
+        applicationByEmail.get(viewStudent.email.trim().toLowerCase()) ? (
+          <ClientProfile
+            application={applicationByEmail.get(viewStudent.email.trim().toLowerCase())!}
+            partners={partners}
+            currentUser={currentUser}
+            onClose={() => setViewStudent(null)}
+            onUpdate={(updates) => onUpdateApplication(applicationByEmail.get(viewStudent.email.trim().toLowerCase())!.id, updates)}
+          />
+        ) : (
+          <StudentProfile
+            student={viewStudent}
+            applications={applications}
+            onClose={() => setViewStudent(null)}
+            onUpdate={(updates) => {
+              onUpdateStudent(viewStudent.id, updates);
+              setViewStudent({ ...viewStudent, ...updates });
+            }}
+          />
+        )
       )}
     </div>
   );
