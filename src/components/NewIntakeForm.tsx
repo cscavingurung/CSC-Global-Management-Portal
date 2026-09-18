@@ -4,6 +4,9 @@ import {
   Users, Heart, GraduationCap, Languages, Briefcase,
 } from 'lucide-react';
 import { COUNTRIES, PURPOSES } from '../mockData';
+import { dateKey } from '../dateTime';
+
+const TODAY = dateKey(new Date());
 
 export interface IntakeFormData {
   name: string;
@@ -180,8 +183,12 @@ export default function NewIntakeForm({ onSubmitted, embedded = false, onSubmit 
               <input
                 type="date"
                 required
+                max={TODAY}
                 value={form.dob}
-                onChange={(e) => setForm({ ...form, dob: e.target.value })}
+                onChange={(e) => {
+                  const value = e.target.value > TODAY ? TODAY : e.target.value;
+                  setForm({ ...form, dob: value });
+                }}
                 className={fieldClass}
               />
             </div>

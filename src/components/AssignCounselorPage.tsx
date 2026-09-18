@@ -1,16 +1,17 @@
 import { useState, useMemo } from 'react';
 import { UserCheck, Users } from 'lucide-react';
-import { Counselor, IntakeStudent } from '../types';
+import { Branch, Counselor, IntakeStudent } from '../types';
 import AssignCounselorModal from './AssignCounselorModal';
 import { AVAILABILITY_STYLES, sortByAvailability } from '../counselorStatus';
 
 interface AssignCounselorPageProps {
   students: IntakeStudent[];
   counselors: Counselor[];
+  branches: Branch[];
   onAssign: (studentId: string, counselorName: string) => void;
 }
 
-export default function AssignCounselorPage({ students, counselors, onAssign }: AssignCounselorPageProps) {
+export default function AssignCounselorPage({ students, counselors, branches, onAssign }: AssignCounselorPageProps) {
   const [assignStudent, setAssignStudent] = useState<IntakeStudent | null>(null);
 
   const unassigned = useMemo(
@@ -130,6 +131,7 @@ export default function AssignCounselorPage({ students, counselors, onAssign }: 
         <AssignCounselorModal
           student={assignStudent}
           counselors={counselors}
+          branches={branches}
           onClose={() => setAssignStudent(null)}
           onConfirm={(counselorName) => {
             onAssign(assignStudent.id, counselorName);

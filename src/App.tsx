@@ -495,12 +495,13 @@ export default function App() {
           counselors={branchCounselors}
           counselorStudents={counselorStudents}
           onAssign={handleAssign}
+          allBranches={branches}
           branches={branchNames}
           showBranchFilter={isSuperAdmin}
         />
       );
     if (activeKey === 'assign-counselor')
-      return <AssignCounselorPage students={branchStudents} counselors={branchCounselors} onAssign={handleAssign} />;
+      return <AssignCounselorPage students={branchStudents} counselors={branchCounselors} branches={branches} onAssign={handleAssign} />;
     if (activeKey === 'assigned')
       return <AssignedClientsPage counselorStudents={counselorStudents} />;
     if (activeKey === 'partners')
@@ -538,6 +539,7 @@ export default function App() {
           showBranchFilter={isSuperAdmin}
           partners={partners}
           currentUser={user}
+          stageScope={user.role === 'application_officer' ? 'Clients' : undefined}
         />
       );
     if (activeKey === 'offer-applications')

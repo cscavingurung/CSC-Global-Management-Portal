@@ -218,6 +218,9 @@ function StatusTracker({
   const visa = application.visaApplication;
   const active = getActiveOfferApplication(application);
   const attempts = application.offerApplications;
+  // Withdrawal is a dead end — nothing on the tracker should stay actionable once a client
+  // has exited the pipeline, even for roles that can otherwise edit it.
+  const canAct = canEdit && !application.withdrawn;
 
   const actions = getAvailableActions(application);
   const effectiveValue = actions.some((a) => a.value === selectedValue) ? selectedValue : (actions[0]?.value ?? '');
@@ -299,14 +302,17 @@ function StatusTracker({
       {/* Vertical stepper */}
       <div className="space-y-0">
         {PIPELINE_STEPS.map((step, i) => {
-          const isDone = i < stepIndex;
           const isCurrent = i === stepIndex;
           const isCurrentNegative = isCurrent && negative;
+          const isLast = i === PIPELINE_STEPS.length - 1;
+          // The final step has nothing after it to "complete" it, so once it's the current
+          // step and the outcome is positive, treat it as done too (checkmark, not a dot).
+          const isTerminalPositive = isCurrent && isLast && !isCurrentNegative;
+          const isDone = i < stepIndex || isTerminalPositive;
           const label =
             step.key === 'offer_outcome' && isCurrentNegative ? 'Offer Rejected'
             : step.key === 'visa_outcome' && isCurrentNegative ? 'Visa Refused'
             : step.label;
-          const isLast = i === PIPELINE_STEPS.length - 1;
           return (
             <div key={step.key} className="flex gap-3">
               <div className="flex flex-col items-center flex-shrink-0">
@@ -334,10 +340,10 @@ function StatusTracker({
                     </div>
                     <div className="space-y-1.5">
                       {CHECKLIST_ITEMS.map((item) => (
-                        <label key={item.key} className={`flex items-center gap-2.5 ${canEdit ? 'cursor-pointer group' : ''}`}>
+                        <label key={item.key} className={`flex items-center gap-2.5 ${canAct ? 'cursor-pointer group' : ''}`}>
                           <div
-                            onClick={canEdit ? () => onUpdate({ visaApplication: { ...visa, checklist: { ...visa.checklist, [item.key]: !visa.checklist[item.key] } } }) : undefined}
-                            className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 transition-colors ${visa.checklist[item.key] ? 'bg-green-500 border-green-500' : `border-gray-300 ${canEdit ? 'group-hover:border-navy-light' : ''}`}`}
+                            onClick={canAct ? () => onUpdate({ visaApplication: { ...visa, checklist: { ...visa.checklist, [item.key]: !visa.checklist[item.key] } } }) : undefined}
+                            className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 transition-colors ${visa.checklist[item.key] ? 'bg-green-500 border-green-500' : `border-gray-300 ${canAct ? 'group-hover:border-navy-light' : ''}`}`}
                           >
                             {visa.checklist[item.key] && <Check className="text-white" size={10} />}
                           </div>
@@ -356,9 +362,12 @@ function StatusTracker({
         })}
       </div>
 
-      {/* Dropdown + Update Status — hidden entirely for view-only roles */}
+      {/* Dropdown + Update Status — hidden entirely for view-only roles, and frozen once
+          the client has withdrawn since nothing on their case should advance after that. */}
       {canEdit && (
-        actions.length > 0 ? (
+        application.withdrawn ? (
+          <p className="mt-2 pt-4 border-t border-grey-border text-xs text-gray-400">Client withdrawn — no further action available.</p>
+        ) : actions.length > 0 ? (
           <div className="mt-2 pt-4 border-t border-grey-border space-y-2.5">
             <div className="relative">
               <select

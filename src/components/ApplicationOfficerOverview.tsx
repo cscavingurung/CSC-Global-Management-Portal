@@ -1,8 +1,8 @@
 import { useMemo } from 'react';
-import { FileText, Send, CheckCircle2, AlertTriangle, type LucideIcon } from 'lucide-react';
+import { Users, FileText, Send, CheckCircle2, AlertTriangle, type LucideIcon } from 'lucide-react';
 import { ApplicationRecord } from '../types';
 import {
-  getClientStage, getStatusTone, STATUS_TONE_STYLES,
+  getActiveOfferApplication, getClientStage, getStatusTone, STATUS_TONE_STYLES,
   daysInCurrentStatus, latestActivityDate, recentActivity, monthKey,
   isVisaApproved, isVisaRefused, isClientInProgress,
 } from '../clientPipeline';
@@ -47,11 +47,14 @@ export default function ApplicationOfficerOverview({ branch, applications }: App
   const now = useMemo(() => latestActivityDate(branchApplications), [branchApplications]);
 
   const activeClients = useMemo(() => branchApplications.filter(isClientInProgress), [branchApplications]);
+  const clientsStage = useMemo(() => activeClients.filter((a) => getClientStage(a) === 'Clients'), [activeClients]);
   const offerStage = useMemo(() => activeClients.filter((a) => getClientStage(a) === 'Offer'), [activeClients]);
   const visaStage = useMemo(() => activeClients.filter((a) => getClientStage(a) === 'Visa'), [activeClients]);
 
+  // Both "awaiting institution" and "offer in progress" clients need officer attention, so
+  // the panel lists them together — the badge just distinguishes which.
   const actionRequired = useMemo<ActionRow[]>(() => {
-    return offerStage
+    return [...clientsStage, ...offerStage]
       .map((a) => {
         const daysInStatus = daysInCurrentStatus(a, now);
         return {
@@ -60,14 +63,14 @@ export default function ApplicationOfficerOverview({ branch, applications }: App
           country: a.country,
           purpose: a.purpose,
           daysInStatus,
-          notYetStarted: a.offerApplications.length === 0,
+          notYetStarted: getClientStage(a) === 'Clients',
         };
       })
       .sort((a, b) => {
         if (a.notYetStarted !== b.notYetStarted) return a.notYetStarted ? -1 : 1;
         return b.daysInStatus - a.daysInStatus;
       });
-  }, [offerStage, now]);
+  }, [clientsStage, offerStage, now]);
 
   const activity = useMemo(() => recentActivity(branchApplications, 5), [branchApplications]);
 
@@ -84,20 +87,30 @@ export default function ApplicationOfficerOverview({ branch, applications }: App
     const needingAttention = activeClients.filter((a) => daysInCurrentStatus(a, now) >= STALE_THRESHOLD_DAYS);
     const longestStuck = needingAttention.reduce((max, a) => Math.max(max, daysInCurrentStatus(a, now)), 0);
 
+    const awaitingOutcome = offerStage.filter((a) => getActiveOfferApplication(a)?.status === 'Applied to Institution').length;
+    const visaNotStarted = visaStage.filter((a) => a.visaApplication === null).length;
+
     return [
+      {
+        key: 'clients',
+        icon: Users,
+        value: String(clientsStage.length),
+        label: 'Awaiting Institution',
+        trend: clientsStage.length === 0 ? 'Nothing waiting' : `${clientsStage.filter((a) => a.offerApplications.length === 0).length} fresh handovers`,
+      },
       {
         key: 'offer',
         icon: FileText,
         value: String(offerStage.length),
         label: 'In Offer Stage',
-        trend: offerStage.length === 0 ? 'Nothing in progress' : `${offerStage.filter((a) => a.offerApplications.length === 0).length} not yet started`,
+        trend: offerStage.length === 0 ? 'Nothing in progress' : `${awaitingOutcome} awaiting outcome`,
       },
       {
         key: 'visa',
         icon: Send,
         value: String(visaStage.length),
         label: 'In Visa Stage',
-        trend: visaStage.length === 0 ? 'None in visa stage' : `${visaStage.filter((a) => a.visaApplication === null).length} not yet started`,
+        trend: visaStage.length === 0 ? 'None in visa stage' : `${visaNotStarted} not yet started`,
       },
       {
         key: 'decided',
@@ -114,7 +127,7 @@ export default function ApplicationOfficerOverview({ branch, applications }: App
         trend: needingAttention.length === 0 ? 'Nothing overdue' : `Longest stuck: ${longestStuck} day${longestStuck === 1 ? '' : 's'}`,
       },
     ];
-  }, [offerStage, visaStage, activeClients, branchApplications, now]);
+  }, [clientsStage, offerStage, visaStage, activeClients, branchApplications, now]);
 
   return (
     <div className="space-y-6">
@@ -125,7 +138,7 @@ export default function ApplicationOfficerOverview({ branch, applications }: App
       </div>
 
       {/* Stat cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 lg:gap-6">
         {stats.map((stat) => {
           const Icon = stat.icon;
           return (
@@ -146,7 +159,7 @@ export default function ApplicationOfficerOverview({ branch, applications }: App
       {/* Action required + recent activity */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="stat-card">
-          <h3 className="text-base font-semibold text-navy mb-4">Action Required — Offer Stage</h3>
+          <h3 className="text-base font-semibold text-navy mb-4">Action Required — Pre-Visa</h3>
           {actionRequired.length > 0 ? (
             <div className="space-y-0">
               {actionRequired.map((row) => {
@@ -159,7 +172,7 @@ export default function ApplicationOfficerOverview({ branch, applications }: App
                     </div>
                     <div className="flex flex-col items-end gap-1 flex-shrink-0 ml-2">
                       <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-gray-100 text-gray-600">
-                        {row.notYetStarted ? 'Not Started' : 'Offer Stage'}
+                        {row.notYetStarted ? 'Awaiting Institution' : 'Offer Stage'}
                       </span>
                       <span className={`text-xs ${stale ? 'text-amber-600 font-medium' : 'text-gray-400'}`}>
                         {row.notYetStarted ? 'Handed over, no institution yet' : `${row.daysInStatus} day${row.daysInStatus === 1 ? '' : 's'} in current status`}

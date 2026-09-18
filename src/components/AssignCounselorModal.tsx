@@ -3,12 +3,13 @@ import {
   X, User, Phone, Mail, Globe, Target, Check, UserCheck,
   Users, Heart, GraduationCap, Languages, Briefcase, Cake,
 } from 'lucide-react';
-import { IntakeStudent, Counselor } from '../types';
+import { IntakeStudent, Counselor, Branch } from '../types';
 import { AVAILABILITY_STYLES, sortByAvailability } from '../counselorStatus';
 
 interface AssignCounselorModalProps {
   student: IntakeStudent;
   counselors: Counselor[];
+  branches: Branch[];
   onClose: () => void;
   onConfirm: (counselorName: string) => void;
 }
@@ -16,6 +17,7 @@ interface AssignCounselorModalProps {
 export default function AssignCounselorModal({
   student,
   counselors,
+  branches,
   onClose,
   onConfirm,
 }: AssignCounselorModalProps) {
@@ -42,6 +44,8 @@ export default function AssignCounselorModal({
     window.addEventListener('keydown', handleEsc);
     return () => window.removeEventListener('keydown', handleEsc);
   }, [onClose]);
+
+  const branchManager = branches.find((b) => b.name === student.branch)?.manager;
 
   const detailRows = [
     { icon: User, label: 'Name', value: student.name },
@@ -124,6 +128,19 @@ export default function AssignCounselorModal({
                 <>
                   <div className="fixed inset-0 z-10" onClick={() => setDropdownOpen(false)} />
                   <div className="absolute z-20 mt-1 w-full bg-white border border-grey-border rounded-lg shadow-lg overflow-hidden max-h-80 overflow-y-auto">
+                    {branchManager && !counselors.some((c) => c.name === branchManager) && (
+                      <>
+                        <BranchManagerOption
+                          name={branchManager}
+                          selected={branchManager === selectedCounselor}
+                          onSelect={() => {
+                            setSelectedCounselor(branchManager);
+                            setDropdownOpen(false);
+                          }}
+                        />
+                        <div className="border-t border-grey-border" />
+                      </>
+                    )}
                     {matching.map((c) => (
                       <CounselorOption
                         key={c.id}
@@ -180,6 +197,31 @@ export default function AssignCounselorModal({
         </div>
       </div>
     </div>
+  );
+}
+
+// A branch manager who also takes on counselling — shown above the regular counselor list,
+// badged distinctly since they have no country specialty or availability tracking of their own.
+function BranchManagerOption({ name, selected, onSelect }: { name: string; selected: boolean; onSelect: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      className={`w-full flex items-center justify-between gap-2 px-4 py-2.5 text-sm transition-colors text-left ${
+        selected ? 'bg-navy text-white' : 'text-navy hover:bg-grey-bg'
+      }`}
+    >
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <p className="font-medium truncate">{name}</p>
+          <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full flex-shrink-0 ${selected ? 'bg-white/20 text-white' : 'bg-purple-100 text-purple-700'}`}>
+            Branch Manager
+          </span>
+        </div>
+        <p className={`text-xs mt-0.5 ${selected ? 'text-white/60' : 'text-gray-400'}`}>Also counsels at this branch</p>
+      </div>
+      {selected && <Check size={16} className="flex-shrink-0" />}
+    </button>
   );
 }
 

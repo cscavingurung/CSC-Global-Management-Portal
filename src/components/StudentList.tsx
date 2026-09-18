@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Search, X, UserCheck, ChevronDown } from 'lucide-react';
-import { Counselor, CounselorStudent, IntakeStudent } from '../types';
+import { Branch, Counselor, CounselorStudent, IntakeStudent } from '../types';
 import AssignCounselorModal from './AssignCounselorModal';
 import DateRangeFilter from './DateRangeFilter';
 import { matchesDateRange } from '../dateFilter';
@@ -10,6 +10,7 @@ interface StudentListProps {
   counselors: Counselor[];
   counselorStudents?: CounselorStudent[];
   onAssign: (studentId: string, counselorName: string) => void;
+  allBranches: Branch[];
   branches?: string[];
   showBranchFilter?: boolean;
 }
@@ -23,7 +24,7 @@ const CONSULTATION_STATUS_STYLES: Record<string, string> = {
   'Consultation Complete': 'bg-green-100 text-green-700',
 };
 
-export default function StudentList({ students, counselors, counselorStudents = [], onAssign, branches, showBranchFilter }: StudentListProps) {
+export default function StudentList({ students, counselors, counselorStudents = [], onAssign, allBranches, branches, showBranchFilter }: StudentListProps) {
   const csMap = useMemo(() => new Map(counselorStudents.map((cs) => [cs.email, cs])), [counselorStudents]);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
@@ -242,6 +243,7 @@ export default function StudentList({ students, counselors, counselorStudents = 
         <AssignCounselorModal
           student={assignStudent}
           counselors={counselors}
+          branches={allBranches}
           onClose={() => setAssignStudent(null)}
           onConfirm={(counselorName) => {
             onAssign(assignStudent.id, counselorName);

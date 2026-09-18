@@ -1,6 +1,6 @@
 import { ApplicationRecord, OfferApplication, OfferStatus, VisaStageStatus, Role } from './types';
 
-export type ClientStage = 'Offer' | 'Visa';
+export type ClientStage = 'Clients' | 'Offer' | 'Visa';
 
 export type StatusTone = 'progress' | 'positive' | 'negative' | 'early' | 'withdrawn';
 
@@ -31,8 +31,15 @@ export function isVisaUnlocked(app: ApplicationRecord): boolean {
   return app.offerApplications.some((a) => a.status === 'Fee Paid');
 }
 
+// 'Clients' — no institution applied to yet (fresh handover, or every attempt so far was
+// Rejected and they're waiting on the officer to apply somewhere new). 'Offer' — an attempt
+// is actively in progress. 'Visa' — fee paid on an offer, visa stage unlocked. A client sits
+// in exactly one of these, so list/tab filtering never double-shows someone.
 export function getClientStage(app: ApplicationRecord): ClientStage {
-  return isVisaUnlocked(app) ? 'Visa' : 'Offer';
+  if (isVisaUnlocked(app)) return 'Visa';
+  const active = getActiveOfferApplication(app);
+  if (!active || active.status === 'Rejected') return 'Clients';
+  return 'Offer';
 }
 
 export function getClientStatusLabel(app: ApplicationRecord): string {

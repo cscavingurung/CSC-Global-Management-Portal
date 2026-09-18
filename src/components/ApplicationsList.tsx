@@ -23,10 +23,17 @@ type StageFilter = 'all' | ClientStage | 'Withdrawn';
 
 const STAGE_FILTER_OPTIONS: { value: StageFilter; label: string }[] = [
   { value: 'all', label: 'All Stages' },
+  { value: 'Clients', label: 'Awaiting Institution' },
   { value: 'Offer', label: 'Offer Stage' },
   { value: 'Visa', label: 'Visa Stage' },
   { value: 'Withdrawn', label: 'Withdrawn' },
 ];
+
+const STAGE_DISPLAY_LABEL: Record<ClientStage, string> = {
+  Clients: 'Awaiting Institution',
+  Offer: 'Offer',
+  Visa: 'Visa',
+};
 
 export default function ApplicationsList({ applications, onUpdateApplication, branches, showBranchFilter, partners, currentUser, stageScope }: ApplicationsListProps) {
   const [search, setSearch] = useState('');
@@ -139,7 +146,7 @@ export default function ApplicationsList({ applications, onUpdateApplication, br
                 <td className="px-5 py-3.5 text-sm text-gray-600">{a.counselor}</td>
                 <td className="px-5 py-3.5 text-sm text-gray-500 whitespace-nowrap">{a.consultationDate}</td>
                 {showBranchFilter && <td className="px-5 py-3.5 text-sm text-gray-600">{a.branch}</td>}
-                {!stageScope && <td className="px-5 py-3.5 text-sm text-gray-600">{a.withdrawn ? '—' : getClientStage(a)}</td>}
+                {!stageScope && <td className="px-5 py-3.5 text-sm text-gray-600">{a.withdrawn ? '—' : STAGE_DISPLAY_LABEL[getClientStage(a)]}</td>}
                 <td className="px-5 py-3.5">
                   <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${STATUS_TONE_STYLES[getStatusTone(a)]}`}>
                     {getClientStatusLabel(a)}
@@ -181,7 +188,7 @@ export default function ApplicationsList({ applications, onUpdateApplication, br
               {stageScope ? (
                 <p>Consultation: <span className="text-gray-700">{a.consultationDate}</span></p>
               ) : (
-                <p>Stage: <span className="text-gray-700">{a.withdrawn ? '—' : getClientStage(a)}</span></p>
+                <p>Stage: <span className="text-gray-700">{a.withdrawn ? '—' : STAGE_DISPLAY_LABEL[getClientStage(a)]}</span></p>
               )}
             </div>
             <div className="flex items-center justify-between pt-3 border-t border-grey-border">
