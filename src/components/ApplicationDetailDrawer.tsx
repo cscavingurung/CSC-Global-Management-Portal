@@ -3,28 +3,16 @@ import {
   Cake, Users, Heart, GraduationCap, BookOpen, Briefcase, FileText,
   Building2, Calendar, CheckCircle, XCircle, UserX,
 } from 'lucide-react';
-import { ApplicationRecord, OfferStatus, VisaStageStatus } from '../types';
-import { getClientStatusLabel, getStatusTone, STATUS_TONE_STYLES, isVisaUnlocked, checklistCompleteCount } from '../clientPipeline';
+import { ApplicationRecord } from '../types';
+import {
+  getClientStatusLabel, getStatusTone, STATUS_TONE_STYLES, OFFER_STATUS_STYLES, VISA_STATUS_STYLES,
+  isVisaUnlocked, checklistCompleteCount,
+} from '../clientPipeline';
 
 interface ApplicationDetailDrawerProps {
   application: ApplicationRecord;
   onClose: () => void;
 }
-
-const OFFER_STATUS_STYLES: Record<OfferStatus, string> = {
-  Enrolled: 'bg-gray-100 text-gray-600',
-  'Applied to Institution': 'bg-navy/10 text-navy',
-  'Offer Received': 'bg-green-100 text-green-700',
-  Rejected: 'bg-red-100 text-red-700',
-};
-
-const VISA_STATUS_STYLES: Record<VisaStageStatus, string> = {
-  'Preparing Documents': 'bg-gray-100 text-gray-600',
-  'Ready for Visa': 'bg-navy/10 text-navy',
-  'Visa Applied': 'bg-navy/10 text-navy',
-  'Visa Approved': 'bg-green-100 text-green-700',
-  'Visa Refused': 'bg-red-100 text-red-700',
-};
 
 // Read-only view for Branch Manager / Super Admin / Finance — the stage-by-stage editing
 // workflow (add institution, tick documents, move statuses) lives in ClientProfile and is

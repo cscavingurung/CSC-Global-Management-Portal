@@ -1,4 +1,4 @@
-import { ApplicationRecord, OfferApplication, VisaStageStatus } from './types';
+import { ApplicationRecord, OfferApplication, OfferStatus, VisaStageStatus } from './types';
 
 export type ClientStage = 'Offer' | 'Visa';
 
@@ -59,6 +59,23 @@ export const STATUS_TONE_STYLES: Record<StatusTone, string> = {
   negative: 'bg-red-100 text-red-700',
   early: 'bg-gray-100 text-gray-600',
   withdrawn: 'bg-gray-100 text-gray-500',
+};
+
+// Per-status pill colors — centralized so every screen that shows an offer/visa status
+// (officer views, the read-only branch/counselor views) renders it identically.
+export const OFFER_STATUS_STYLES: Record<OfferStatus, string> = {
+  Enrolled: 'bg-gray-100 text-gray-600',
+  'Applied to Institution': 'bg-navy/10 text-navy',
+  'Offer Received': 'bg-green-100 text-green-700',
+  Rejected: 'bg-red-100 text-red-700',
+};
+
+export const VISA_STATUS_STYLES: Record<VisaStageStatus, string> = {
+  'Preparing Documents': 'bg-gray-100 text-gray-600',
+  'Ready for Visa': 'bg-navy/10 text-navy',
+  'Visa Applied': 'bg-navy/10 text-navy',
+  'Visa Approved': 'bg-green-100 text-green-700',
+  'Visa Refused': 'bg-red-100 text-red-700',
 };
 
 export function isClientInProgress(app: ApplicationRecord): boolean {

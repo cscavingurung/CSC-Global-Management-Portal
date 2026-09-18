@@ -1,12 +1,16 @@
 import { useEffect } from 'react';
 import {
   ArrowLeft, User, Phone, Mail, Globe, Target, CalendarDays, Lock, Calendar,
-  Cake, Users, Heart, GraduationCap, Languages, Briefcase,
+  Cake, Users, Heart, GraduationCap, Languages, Briefcase, Building2, UserX,
 } from 'lucide-react';
-import { CounselorStudent, ConsultationStatus } from '../types';
+import { ApplicationRecord, CounselorStudent, ConsultationStatus } from '../types';
+import { OFFER_STATUS_STYLES, VISA_STATUS_STYLES, isVisaUnlocked, checklistCompleteCount } from '../clientPipeline';
 
 interface StudentProfileProps {
   student: CounselorStudent;
+  /** When provided, shows a read-only "Application Progress" section for the matching
+   * ApplicationRecord (joined by email) — the officer's offer/visa work on this client. */
+  applications?: ApplicationRecord[];
   onClose: () => void;
   onUpdate: (updates: Partial<CounselorStudent>) => void;
 }
@@ -18,9 +22,10 @@ const STATUS_STYLES: Record<ConsultationStatus, string> = {
   'Consultation Complete': 'bg-green-100 text-green-700 border-green-200',
 };
 
-export default function StudentProfile({ student, onClose }: StudentProfileProps) {
+export default function StudentProfile({ student, applications, onClose }: StudentProfileProps) {
   const status = student.consultationStatus;
   const outcome = student.outcome;
+  const app = applications?.find((a) => a.email.trim().toLowerCase() === student.email.trim().toLowerCase());
 
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
@@ -126,6 +131,58 @@ export default function StudentProfile({ student, onClose }: StudentProfileProps
               </div>
             </div>
           </div>
+
+          {/* Application progress — read-only, mirrors the officer's own view */}
+          {app && (
+            <>
+              {app.withdrawn && (
+                <div className="bg-gray-100 border border-grey-border rounded-2xl px-5 py-4 flex items-center gap-3">
+                  <UserX className="text-gray-500 flex-shrink-0" size={18} />
+                  <p className="text-sm text-gray-600">
+                    This client was marked as withdrawn{app.withdrawnDate ? ` on ${app.withdrawnDate}` : ''}.
+                  </p>
+                </div>
+              )}
+
+              <div className="bg-white rounded-2xl border border-grey-border p-6">
+                <h3 className="text-sm font-semibold text-navy mb-4">Offer Application History</h3>
+                {app.offerApplications.length === 0 ? (
+                  <p className="text-sm text-gray-400">No offer applications yet.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {[...app.offerApplications].reverse().map((o) => (
+                      <div key={o.id} className="flex items-center gap-3 border border-grey-border rounded-xl px-4 py-3">
+                        <div className="w-9 h-9 rounded-lg bg-navy/10 flex items-center justify-center flex-shrink-0">
+                          <Building2 className="text-navy" size={16} />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium text-navy truncate">{o.institution}</p>
+                          {o.appliedDate && <p className="text-xs text-gray-400">Applied {o.appliedDate}</p>}
+                        </div>
+                        <span className={`text-xs font-medium px-2.5 py-1 rounded-full flex-shrink-0 ${OFFER_STATUS_STYLES[o.status]}`}>{o.status}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {isVisaUnlocked(app) && (
+                <div className="bg-white rounded-2xl border border-grey-border p-6">
+                  <h3 className="text-sm font-semibold text-navy mb-4">Visa Application</h3>
+                  {!app.visaApplication ? (
+                    <p className="text-sm text-gray-400">Not started yet.</p>
+                  ) : (
+                    <div className="flex items-center justify-between">
+                      <span className={`text-xs font-semibold px-3 py-1.5 rounded-full ${VISA_STATUS_STYLES[app.visaApplication.status]}`}>
+                        {app.visaApplication.status}
+                      </span>
+                      <span className="text-xs text-gray-500">{checklistCompleteCount(app.visaApplication.checklist)} of 4 documents complete</span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </>
+          )}
         </div>
       </div>
     </div>

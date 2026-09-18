@@ -4,7 +4,7 @@ import { CounselorStudent, ApplicationRecord, OfferStatus, VisaStageStatus } fro
 import StudentProfile from './StudentProfile';
 import DateRangeFilter from './DateRangeFilter';
 import { matchesDateRange } from '../dateFilter';
-import { getActiveOfferApplication } from '../clientPipeline';
+import { getActiveOfferApplication, OFFER_STATUS_STYLES, VISA_STATUS_STYLES } from '../clientPipeline';
 
 interface ConsultationsPageProps {
   students: CounselorStudent[];
@@ -14,21 +14,6 @@ interface ConsultationsPageProps {
 
 type OfferFilter = 'all' | 'none' | OfferStatus;
 type VisaFilter = 'all' | 'none' | VisaStageStatus;
-
-const OFFER_STATUS_STYLES: Record<OfferStatus, string> = {
-  Enrolled: 'bg-gray-100 text-gray-600',
-  'Applied to Institution': 'bg-navy/10 text-navy',
-  'Offer Received': 'bg-green-100 text-green-700',
-  Rejected: 'bg-red-100 text-red-700',
-};
-
-const VISA_STATUS_STYLES: Record<VisaStageStatus, string> = {
-  'Preparing Documents': 'bg-gray-100 text-gray-600',
-  'Ready for Visa': 'bg-navy/10 text-navy',
-  'Visa Applied': 'bg-navy/10 text-navy',
-  'Visa Approved': 'bg-green-100 text-green-700',
-  'Visa Refused': 'bg-red-100 text-red-700',
-};
 
 const OFFER_FILTER_OPTIONS: { value: OfferFilter; label: string }[] = [
   { value: 'all', label: 'All Offer Statuses' },
@@ -208,6 +193,7 @@ export default function ConsultationsPage({ students, applications, onUpdateStud
       {viewStudent && (
         <StudentProfile
           student={viewStudent}
+          applications={applications}
           onClose={() => setViewStudent(null)}
           onUpdate={(updates) => {
             onUpdateStudent(viewStudent.id, updates);

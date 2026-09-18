@@ -10,7 +10,7 @@ import {
 } from '../types';
 import {
   getActiveOfferApplication, isVisaUnlocked, isChecklistComplete, checklistCompleteCount,
-  getClientStatusLabel, getStatusTone, STATUS_TONE_STYLES, today,
+  getClientStatusLabel, getStatusTone, STATUS_TONE_STYLES, OFFER_STATUS_STYLES, VISA_STATUS_STYLES, today,
 } from '../clientPipeline';
 
 interface ClientProfileProps {
@@ -21,21 +21,6 @@ interface ClientProfileProps {
 }
 
 type Tab = 'details' | 'application';
-
-const OFFER_STATUS_STYLES: Record<OfferStatus, string> = {
-  Enrolled: 'bg-gray-100 text-gray-600',
-  'Applied to Institution': 'bg-navy/10 text-navy',
-  'Offer Received': 'bg-green-100 text-green-700',
-  Rejected: 'bg-red-100 text-red-700',
-};
-
-const VISA_STATUS_STYLES: Record<VisaStageStatus, string> = {
-  'Preparing Documents': 'bg-gray-100 text-gray-600',
-  'Ready for Visa': 'bg-navy/10 text-navy',
-  'Visa Applied': 'bg-navy/10 text-navy',
-  'Visa Approved': 'bg-green-100 text-green-700',
-  'Visa Refused': 'bg-red-100 text-red-700',
-};
 
 const CHECKLIST_ITEMS: { key: keyof VisaApplication['checklist']; label: string }[] = [
   { key: 'noc', label: 'NOC' },
