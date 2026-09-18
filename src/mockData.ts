@@ -5,7 +5,7 @@ export const ROLE_LABELS: Record<Role, string> = {
   marketing: 'Marketing',
   finance: 'Finance',
   branch_manager: 'Branch Manager',
-  receptionist: 'Receptionist',
+  receptionist: 'Front Desk Officer',
   counselor: 'Counselor',
   application_officer: 'VA Officer',
 };

@@ -517,7 +517,7 @@ export default function App() {
     if (activeKey === 'my-students')
       return <MyStudents students={myCounselorStudents} onUpdateStudent={handleUpdateCounselorStudent} />;
     if (activeKey === 'consultations')
-      return <ConsultationsPage students={myCounselorStudents} onUpdateStudent={handleUpdateCounselorStudent} />;
+      return <ConsultationsPage students={myCounselorStudents} applications={applications} onUpdateStudent={handleUpdateCounselorStudent} />;
     if (activeKey === 'follow-ups')
       return <FollowUpsPage students={myCounselorStudents} onUpdateStudent={handleUpdateCounselorStudent} />;
     if (activeKey === 'archive')

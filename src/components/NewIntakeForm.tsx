@@ -72,7 +72,7 @@ export default function NewIntakeForm({ onSubmitted, embedded = false, onSubmit 
         <p className="text-sm text-gray-500 leading-relaxed mb-6">
           {embedded
             ? 'The client has been added as a new intake and is ready to be assigned to a counselor.'
-            : "Your details have been received. Reception will call you shortly to confirm your consultation."}
+            : "Your details have been received. Our front desk officer will call you shortly to confirm your consultation."}
         </p>
         <button
           onClick={handleReset}
