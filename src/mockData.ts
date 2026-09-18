@@ -68,9 +68,7 @@ export const NAV_CONFIG: NavConfig = {
   ],
   application_officer: [
     { key: 'overview', label: 'Dashboard', icon: 'LayoutDashboard' },
-    { key: 'applications', label: 'Applications', icon: 'FileText' },
-    { key: 'offer', label: 'Offer', icon: 'FileCheck' },
-    { key: 'visa', label: 'Visa', icon: 'Stamp' },
+    { key: 'applications', label: 'Clients', icon: 'FileText' },
     { key: 'status-updates', label: 'Status Updates', icon: 'RefreshCw' },
   ],
 };
@@ -120,6 +118,8 @@ export const MOCK_APPLICATIONS: ApplicationRecord[] = [
       { status: 'Lodgement', date: 'Sept 14' },
     ],
     branch: 'Sydney CBD',
+    collegeApplications: [],
+    visaApplication: null,
   },
   {
     id: 'a2',
@@ -136,6 +136,8 @@ export const MOCK_APPLICATIONS: ApplicationRecord[] = [
       { status: 'Preparation', date: 'Sept 14' },
     ],
     branch: 'Sydney CBD',
+    collegeApplications: [],
+    visaApplication: null,
   },
   {
     id: 'a3',
@@ -154,6 +156,8 @@ export const MOCK_APPLICATIONS: ApplicationRecord[] = [
       { status: 'Success', date: 'Sept 14' },
     ],
     branch: 'Sydney CBD',
+    collegeApplications: [],
+    visaApplication: null,
   },
   {
     id: 'a4',
@@ -171,6 +175,8 @@ export const MOCK_APPLICATIONS: ApplicationRecord[] = [
       { status: 'Lodgement', date: 'Sept 11' },
     ],
     branch: 'Sydney CBD',
+    collegeApplications: [],
+    visaApplication: null,
   },
   {
     id: 'a5',
@@ -187,6 +193,8 @@ export const MOCK_APPLICATIONS: ApplicationRecord[] = [
       { status: 'Preparation', date: 'Sept 9' },
     ],
     branch: 'Sydney CBD',
+    collegeApplications: [],
+    visaApplication: null,
   },
   {
     id: 'a6',
@@ -205,6 +213,8 @@ export const MOCK_APPLICATIONS: ApplicationRecord[] = [
       { status: 'Refused', date: 'Sept 13' },
     ],
     branch: 'Sydney CBD',
+    collegeApplications: [],
+    visaApplication: null,
   },
   {
     id: 'a7',
@@ -221,6 +231,8 @@ export const MOCK_APPLICATIONS: ApplicationRecord[] = [
       { status: 'Preparation', date: 'Sept 7' },
     ],
     branch: 'Sydney CBD',
+    collegeApplications: [],
+    visaApplication: null,
   },
   {
     id: 'a8',
@@ -238,6 +250,8 @@ export const MOCK_APPLICATIONS: ApplicationRecord[] = [
       { status: 'Lodgement', date: 'Sept 10' },
     ],
     branch: 'New Baneshwor',
+    collegeApplications: [],
+    visaApplication: null,
   },
   {
     id: 'a9',
@@ -254,6 +268,8 @@ export const MOCK_APPLICATIONS: ApplicationRecord[] = [
       { status: 'Preparation', date: 'Sept 4' },
     ],
     branch: 'Kamaladi',
+    collegeApplications: [],
+    visaApplication: null,
   },
   {
     id: 'a10',
@@ -270,6 +286,8 @@ export const MOCK_APPLICATIONS: ApplicationRecord[] = [
       { status: 'Preparation', date: 'Sept 6' },
     ],
     branch: 'Putalisadak',
+    collegeApplications: [],
+    visaApplication: null,
   },
 ];
 

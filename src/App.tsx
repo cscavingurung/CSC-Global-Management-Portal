@@ -234,12 +234,20 @@ export default function App() {
           email: student.email,
           country: student.country,
           purpose: student.purpose,
+          dob: student.dob,
+          gender: student.gender,
+          maritalStatus: student.maritalStatus,
+          academicQualification: student.academicQualification,
+          ieltsPte: student.ieltsPte,
+          workExperience: student.workExperience,
           counselor: student.assignedCounselor,
           consultationDate: student.completedDate ?? now.toISOString().slice(0, 10),
           consultationNotes: student.consultationNotes,
           status: 'Preparation',
           statusHistory: [{ status: 'Preparation', date: historyDate }],
           branch: user?.branch ?? '',
+          collegeApplications: [],
+          visaApplication: null,
         };
         setApplications((prev) => [newApplication, ...prev]);
         insertApplication(newApplication).catch((err) => console.error('Failed to insert application in Supabase', err));
@@ -521,6 +529,7 @@ export default function App() {
           onUpdateApplication={handleUpdateApplication}
           branches={branchNames}
           showBranchFilter={isSuperAdmin}
+          partners={user.role === 'application_officer' ? partners : undefined}
         />
       );
     if (activeKey === 'status-updates')

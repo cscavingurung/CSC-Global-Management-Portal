@@ -86,6 +86,35 @@ export interface StatusHistoryEntry {
   date: string;
 }
 
+export interface DocumentItem {
+  id: string;
+  name: string;
+  ready: boolean;
+}
+
+export type CollegeAppStatus = 'Preparing Documents' | 'Offer Received' | 'Accepted' | 'Declined';
+
+export interface CollegeApplication {
+  id: string;
+  institution: string;
+  course: string;
+  appliedDate: string;
+  status: CollegeAppStatus;
+  offerDate?: string;
+  documents: DocumentItem[];
+  notes: string;
+}
+
+export type VisaStatus = 'Preparing' | 'Lodged' | 'Granted' | 'Refused';
+
+export interface VisaApplication {
+  status: VisaStatus;
+  lodgementDate?: string;
+  outcomeDate?: string;
+  documents: DocumentItem[];
+  notes: string;
+}
+
 export interface ApplicationRecord {
   id: string;
   name: string;
@@ -93,12 +122,20 @@ export interface ApplicationRecord {
   email: string;
   country: string;
   purpose: string;
+  dob?: string;
+  gender?: string;
+  maritalStatus?: string;
+  academicQualification?: string;
+  ieltsPte?: string;
+  workExperience?: string;
   counselor: string;
   consultationDate: string;
   consultationNotes: string;
   status: ApplicationStatus;
   statusHistory: StatusHistoryEntry[];
   branch: string;
+  collegeApplications: CollegeApplication[];
+  visaApplication: VisaApplication | null;
 }
 
 export type StaffRole =

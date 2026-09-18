@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'react';
 import { Search, X, ChevronRight, ChevronDown } from 'lucide-react';
-import { ApplicationRecord, ApplicationStatus } from '../types';
+import { ApplicationRecord, ApplicationStatus, Partner } from '../types';
 import ApplicationDetailDrawer from './ApplicationDetailDrawer';
+import ClientProfile from './ClientProfile';
 import DateRangeFilter from './DateRangeFilter';
 import { matchesDateRange } from '../dateFilter';
 
@@ -10,6 +11,7 @@ interface ApplicationsListProps {
   onUpdateApplication: (id: string, updates: Partial<ApplicationRecord>) => void;
   branches?: string[];
   showBranchFilter?: boolean;
+  partners?: Partner[];
 }
 
 type StatusFilter = 'all' | ApplicationStatus;
@@ -29,7 +31,7 @@ const STATUS_FILTER_OPTIONS: { value: StatusFilter; label: string }[] = [
   { value: 'Refused', label: 'Refused' },
 ];
 
-export default function ApplicationsList({ applications, onUpdateApplication, branches, showBranchFilter }: ApplicationsListProps) {
+export default function ApplicationsList({ applications, onUpdateApplication, branches, showBranchFilter, partners }: ApplicationsListProps) {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [branchFilter, setBranchFilter] = useState<string>('all');
@@ -184,16 +186,28 @@ export default function ApplicationsList({ applications, onUpdateApplication, br
         )}
       </div>
 
-      {/* Detail drawer */}
+      {/* Detail drawer / client profile */}
       {selectedApp && (
-        <ApplicationDetailDrawer
-          application={selectedApp}
-          onClose={() => setSelectedApp(null)}
-          onUpdate={(updates) => {
-            onUpdateApplication(selectedApp.id, updates);
-            setSelectedApp({ ...selectedApp, ...updates });
-          }}
-        />
+        partners ? (
+          <ClientProfile
+            application={selectedApp}
+            partners={partners}
+            onClose={() => setSelectedApp(null)}
+            onUpdate={(updates) => {
+              onUpdateApplication(selectedApp.id, updates);
+              setSelectedApp({ ...selectedApp, ...updates });
+            }}
+          />
+        ) : (
+          <ApplicationDetailDrawer
+            application={selectedApp}
+            onClose={() => setSelectedApp(null)}
+            onUpdate={(updates) => {
+              onUpdateApplication(selectedApp.id, updates);
+              setSelectedApp({ ...selectedApp, ...updates });
+            }}
+          />
+        )
       )}
     </div>
   );

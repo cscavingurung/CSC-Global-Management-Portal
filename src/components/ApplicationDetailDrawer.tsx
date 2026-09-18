@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import {
   ArrowLeft, User, Phone, Mail, Globe, Target, CalendarDays,
-  CheckCircle, AlertTriangle,
+  CheckCircle, AlertTriangle, Cake, Users, Heart, GraduationCap,
+  BookOpen, Briefcase, FileText,
 } from 'lucide-react';
 import { ApplicationRecord, ApplicationStatus, StatusHistoryEntry } from '../types';
 
@@ -76,6 +77,12 @@ export default function ApplicationDetailDrawer({ application, onClose, onUpdate
     { icon: Mail, label: 'Email', value: application.email },
     { icon: Globe, label: 'Country of Interest', value: application.country },
     { icon: Target, label: 'Purpose', value: application.purpose },
+    ...(application.dob ? [{ icon: Cake, label: 'Date of Birth', value: application.dob }] : []),
+    ...(application.gender ? [{ icon: Users, label: 'Gender', value: application.gender }] : []),
+    ...(application.maritalStatus ? [{ icon: Heart, label: 'Marital Status', value: application.maritalStatus }] : []),
+    ...(application.academicQualification ? [{ icon: GraduationCap, label: 'Academic Qualification', value: application.academicQualification }] : []),
+    ...(application.ieltsPte ? [{ icon: BookOpen, label: 'IELTS / PTE', value: application.ieltsPte }] : []),
+    ...(application.workExperience ? [{ icon: Briefcase, label: 'Work Experience', value: application.workExperience }] : []),
     { icon: CalendarDays, label: 'Consultation Date', value: application.consultationDate },
     { icon: User, label: 'Counselor', value: application.counselor },
   ];
@@ -136,6 +143,18 @@ export default function ApplicationDetailDrawer({ application, onClose, onUpdate
                   );
                 })}
               </div>
+
+              {application.consultationNotes && (
+                <div className="mt-4 pt-4 border-t border-grey-border">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-8 h-8 rounded-lg bg-grey-bg flex items-center justify-center flex-shrink-0">
+                      <FileText className="text-navy" size={15} />
+                    </div>
+                    <p className="text-xs text-gray-400">Consultation Notes</p>
+                  </div>
+                  <p className="text-sm text-gray-700 leading-relaxed pl-11">{application.consultationNotes}</p>
+                </div>
+              )}
             </div>
           </div>
 
